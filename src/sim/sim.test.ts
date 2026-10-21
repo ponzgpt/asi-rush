@@ -83,7 +83,7 @@ describe('training vs inference', () => {
 });
 
 describe('offline progress', () => {
-  const s = { ...newGame(), owned: { homePc: 3, accelCard: 0, serverRack: 0 } };
+  const s = { ...newGame(), trainShare: 0, owned: { homePc: 3, accelCard: 0, serverRack: 0 } };
 
   it('matches online ticking', () => {
     expect(simulateOffline(s, 3600).cash.toNumber()).toBeCloseTo(3 * ECONOMY.cashPerFlop * 3600);

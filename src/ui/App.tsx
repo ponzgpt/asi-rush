@@ -109,7 +109,7 @@ function Scene() {
 function Ticker() {
   const [i, setI] = useState(0);
   useEffect(() => {
-    const id = setInterval(() => setI((n) => n + 1), 9000);
+    const id = setInterval(() => setI((n) => n + 1), 14000);
     return () => clearInterval(id);
   }, []);
   const lines = NEWS[lang.value].length ? NEWS[lang.value] : NEWS.en;

@@ -38,7 +38,7 @@ export const ECONOMY = {
   flopRef: 1,
   capExponent: 0.35,
   riskExponent: 1.5, // Risk = Cap^riskExponent / (1 + alignment)
-  defaultTrainShare: 0,
+  defaultTrainShare: 0.5,
 };
 
 export const MILESTONES = {
