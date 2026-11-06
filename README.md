@@ -33,6 +33,12 @@ Results and tuning notes: [docs/BALANCE.md](docs/BALANCE.md).
 
 Every push to `main` runs `.github/workflows/deploy.yml`: install → check → build → GitHub Pages.
 
+## How this was made
+
+I'm a vibe coder. I decide what to build, write the spec and the rules it has to follow, and test the result until it
+does what I said. AI coding agents write the code; I don't write code by hand. Commits under my name were made by an
+agent working for me.
+
 ## License
 
 Code: [MIT](LICENSE).
