@@ -7,6 +7,9 @@ import {
   fuseCost,
   newGame,
   rates,
+  canShip,
+  playerRank,
+  researchAvailable,
   tick,
   type Action,
   type State,
@@ -21,13 +24,39 @@ export interface GreedyOptions {
 export const DEFAULT_GREEDY: GreedyOptions = { clicksPerSec: 5, trainShare: 0.5, maxSeconds: 4 * 3600 };
 
 export type Milestone =
-  'firstPurchase' | 'firstAccelCard' | 'firstServerRack' | 'firstFuse' | 'firstTraining' | 'eraComplete';
+  | 'firstPurchase'
+  | 'firstAccelCard'
+  | 'firstServerRack'
+  | 'firstFuse'
+  | 'firstTraining'
+  | 'researchDone'
+  | 'eraComplete';
 
 const FIRSTS: Record<BuildingId, Milestone | null> = {
   homePc: null,
   accelCard: 'firstAccelCard',
   serverRack: 'firstServerRack',
 };
+
+export interface Sample {
+  t: number;
+  cap: number;
+  cash: number;
+  flops: number;
+  rank: number;
+}
+
+const SAMPLE_SECONDS = 60;
+
+function sample(s: State): Sample {
+  return {
+    t: Math.round(s.time),
+    cap: s.capability.toNumber(),
+    cash: s.cash.toNumber(),
+    flops: effectiveFlops(s),
+    rank: playerRank(s),
+  };
+}
 
 /** Best FLOP/s gained per dollar among buildings and the fuse. */
 function bestBuy(s: State): Action {
@@ -47,18 +76,25 @@ function bestBuy(s: State): Action {
 export function runGreedy(opts: GreedyOptions = DEFAULT_GREEDY): {
   milestones: Partial<Record<Milestone, number>>;
   final: State;
+  timeline: Sample[];
 } {
   let s = newGame();
   const milestones: Partial<Record<Milestone, number>> = {};
   const mark = (m: Milestone) => (milestones[m] ??= s.time);
   const clickEvery = 1 / opts.clicksPerSec;
   let clickClock = 0;
+  const timeline: Sample[] = [];
 
   while (s.time < opts.maxSeconds && s.eraCompleteAt === null) {
     clickClock += TICK_SECONDS;
     while (clickClock >= clickEvery && rates(s).cashPerSec.lt(opts.clicksPerSec * ECONOMY.benchmarkCash)) {
       s = apply(s, { type: 'benchmark' });
       clickClock -= clickEvery;
+    }
+    while (canShip(s)) s = apply(s, { type: 'ship' });
+    for (const r of researchAvailable(s)) {
+      const done = apply(s, { type: 'research', id: r.id });
+      if (done !== s) [s, milestones.researchDone] = [done, s.time];
     }
     for (;;) {
       const next = bestBuy(s);
@@ -74,8 +110,10 @@ export function runGreedy(opts: GreedyOptions = DEFAULT_GREEDY): {
       }
     }
     s = tick(s);
+    if (Math.floor(s.time / SAMPLE_SECONDS) > timeline.length - 1) timeline.push(sample(s));
     if (s.firstTrainingAt !== null) milestones.firstTraining ??= s.firstTrainingAt;
     if (s.eraCompleteAt !== null) milestones.eraComplete ??= s.eraCompleteAt;
   }
-  return { milestones, final: s };
+  timeline.push(sample(s));
+  return { milestones, final: s, timeline };
 }

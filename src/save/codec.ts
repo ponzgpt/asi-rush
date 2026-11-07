@@ -10,7 +10,7 @@ export interface SaveFile {
   state: Record<string, unknown>;
 }
 
-const DECIMAL_KEYS = ['cash', 'capability', 'flopsSpentTraining'] as const;
+const DECIMAL_KEYS = ['cash', 'capability', 'flopsSpentTraining', 'cashEarned'] as const;
 
 export function encode(state: State, savedAt: number): string {
   const plain: Record<string, unknown> = { ...state };

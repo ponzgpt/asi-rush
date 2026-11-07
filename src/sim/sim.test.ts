@@ -1,9 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { BUILDINGS, ECONOMY, OFFLINE, POWER } from '../data/economy.ts';
+import { BUILDINGS, ECONOMY, MODELS, OFFLINE, POWER, RESEARCH, RIVALS } from '../data/economy.ts';
 import { decode, encode } from '../save/codec.ts';
 import {
   apply,
   buildingCost,
+  bulkCost,
+  canShip,
+  maxAffordable,
+  multipliers,
+  pDoom,
+  playerRank,
+  rivalCap,
   effectiveFlops,
   newGame,
   rates,
@@ -33,6 +40,69 @@ describe('costs', () => {
 
   it('benchmark click pays cash', () => {
     expect(apply(newGame(), { type: 'benchmark' }).cash.toNumber()).toBe(ECONOMY.benchmarkCash);
+  });
+});
+
+describe('bulk buying', () => {
+  it('bulk cost equals the sum of single costs', () => {
+    let sum = 0;
+    for (let i = 3; i < 13; i++) sum += buildingCost('accelCard', i).toNumber();
+    expect(bulkCost('accelCard', 3, 10).toNumber()).toBeCloseTo(sum, 6);
+  });
+
+  it('max buys as many as cash allows, never more', () => {
+    const s = withCash(1000);
+    const n = maxAffordable('homePc', 0, s.cash);
+    expect(bulkCost('homePc', 0, n).lte(1000)).toBe(true);
+    expect(bulkCost('homePc', 0, n + 1).gt(1000)).toBe(true);
+    expect(apply(s, { type: 'buy', building: 'homePc', count: 'max' }).owned.homePc).toBe(n);
+  });
+
+  it('a fixed count is all-or-nothing', () => {
+    expect(apply(withCash(50), { type: 'buy', building: 'homePc', count: 10 }).owned.homePc).toBe(0);
+  });
+});
+
+describe('research and models', () => {
+  const backprop = RESEARCH[0] as (typeof RESEARCH)[number];
+
+  it('research is locked until its capability threshold and then applies its multiplier', () => {
+    const rich = withCash(1e6);
+    expect(apply(rich, { type: 'research', id: backprop.id })).toBe(rich);
+    const unlocked = { ...rich, capability: rich.capability.add(backprop.unlockCap) };
+    const done = apply(unlocked, { type: 'research', id: backprop.id });
+    expect(done.research).toContain(backprop.id);
+    expect(multipliers(done).cap).toBeCloseTo(backprop.capMult ?? 1);
+    expect(apply(done, { type: 'research', id: backprop.id })).toBe(done); // one-time
+  });
+
+  it('shipping a model needs its capability, pays hype and raises the price of inference', () => {
+    const first = MODELS[0] as (typeof MODELS)[number];
+    expect(canShip(newGame())).toBe(false);
+    const s = { ...newGame(), capability: newGame().capability.add(first.cap) };
+    const shipped = apply(s, { type: 'ship' });
+    expect(shipped.modelsShipped).toBe(1);
+    expect(shipped.cash.toNumber()).toBe(first.hypeCash);
+    expect(multipliers(shipped).cash).toBeCloseTo(first.priceMult);
+  });
+
+  it('alignment research lowers P(doom) for the same capability', () => {
+    const base = { ...withCash(1e6), capability: newGame().capability.add(500) };
+    const aligned = apply(base, { type: 'research', id: 'redTeam' });
+    expect(pDoom(aligned)).toBeLessThan(pDoom(base));
+    expect(pDoom(base)).toBeGreaterThan(0);
+    expect(pDoom(base)).toBeLessThan(1);
+  });
+});
+
+describe('rivals', () => {
+  it('reach the era goal at their goal time', () => {
+    for (const r of RIVALS) expect(rivalCap(r, r.goalSeconds)).toBeCloseTo(r.start + 1000);
+  });
+
+  it('rank is 1 when ahead of every rival, last when behind all', () => {
+    expect(playerRank(newGame())).toBe(RIVALS.length + 1);
+    expect(playerRank({ ...newGame(), capability: newGame().capability.add(1e6) })).toBe(1);
   });
 });
 
