@@ -1,0 +1,309 @@
+import { useEffect, useState } from 'preact/hooks';
+import { MILESTONES, MODELS, RIVALS } from '../data/economy.ts';
+import { audioPrefs, setAudioPrefs, unlockAudio } from '../audio/audio.ts';
+import { pDoom, playerRank } from '../sim/sim.ts';
+import {
+  exportSave,
+  game,
+  hasStarted,
+  labName,
+  loadSave,
+  pushLog,
+  resetGame,
+  save,
+  setLabName,
+  startLoop,
+} from '../state/store.ts';
+import { fmt, fmtClock, fmtInt, fmtPct } from './format.ts';
+import { lang, setLang, t, type Key } from './i18n.ts';
+
+const GAME_URL = 'https://ponzgpt.github.io/asi-rush/';
+
+export function Modal(p: {
+  onClose: () => void;
+  children: preact.ComponentChildren;
+  wide?: boolean;
+  label: string;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && p.onClose();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [p.onClose]);
+  return (
+    <div class="overlay" onClick={(e) => e.target === e.currentTarget && p.onClose()}>
+      <div class={`modal${p.wide ? ' wide' : ''}`} role="dialog" aria-modal="true" aria-label={p.label}>
+        <button class="close" aria-label={t('close')} onClick={p.onClose}>
+          ×
+        </button>
+        {p.children}
+      </div>
+    </div>
+  );
+}
+
+// --- boot + briefing -----------------------------------------------------
+
+const BIOS = [
+  'GARAGE-BIOS (C) 1986  v1.02',
+  'MEMORY TEST ........ 640K OK',
+  'MATH COPROCESSOR ... DETECTED',
+  'FUSE ............... 50 kW (PROBABLY)',
+  'LOADING ASI_RUSH.EXE',
+];
+
+export function Boot(p: { onDone: () => void }) {
+  const [lines, setLines] = useState(0);
+  const [name, setName] = useState(labName.value);
+  const returning = hasStarted();
+
+  useEffect(() => {
+    if (lines >= BIOS.length) return;
+    const id = setTimeout(() => setLines((n) => n + 1), lines === 0 ? 250 : 180);
+    return () => clearTimeout(id);
+  }, [lines]);
+
+  const go = () => {
+    unlockAudio();
+    startLoop();
+    if (!returning || name !== labName.value) setLabName(name);
+    p.onDone();
+  };
+
+  useEffect(() => {
+    if (!returning) return;
+    const onKey = () => go();
+    window.addEventListener('keydown', onKey, { once: true });
+    return () => window.removeEventListener('keydown', onKey);
+  });
+
+  const ready = lines >= BIOS.length;
+  return (
+    <div class="boot" onClick={returning ? go : undefined}>
+      <div class="boot-inner">
+        <pre class="bios">
+          {BIOS.slice(0, lines).join('\n')}
+          {!ready && <span class="caret">█</span>}
+        </pre>
+        {ready && (
+          <div class="briefing">
+            <h1 class="logo">
+              ASI<span>RUSH</span>
+            </h1>
+            <div class="tag">
+              {returning ? `${t('era')} · ${labName.value || t('labNameDefault')}` : t('briefingTag')}
+            </div>
+            {returning ? (
+              <>
+                <button class="key key-primary key-big" onClick={go}>
+                  {t('continue')}
+                </button>
+                <p class="blink dim">{t('bootPress')}</p>
+              </>
+            ) : (
+              <>
+                <p class="lead">{t('briefing1')}</p>
+                <p class="lead">{t('briefing2')}</p>
+                <ol class="how">
+                  {(['how1', 'how2', 'how3', 'how4'] as Key[]).map((k, i) => (
+                    <li key={k}>
+                      <b>{i + 1}</b>
+                      {t(k)}
+                    </li>
+                  ))}
+                </ol>
+                <p class="goal-line">{t('briefingGoal', { n: fmtInt(MILESTONES.eraGoalCap) })}</p>
+                <form
+                  class="lab-form"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    go();
+                  }}
+                >
+                  <label>
+                    {t('labNameLabel')}
+                    <input
+                      value={name}
+                      maxLength={32}
+                      placeholder={t('labNameDefault')}
+                      onInput={(e) => setName(e.currentTarget.value)}
+                    />
+                  </label>
+                  <button class="key key-primary key-big" type="submit">
+                    {t('start')}
+                  </button>
+                </form>
+                <p class="dim small">{t('briefingFoot')}</p>
+                <LangSwitch />
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function LangSwitch() {
+  return (
+    <div class="seg-group">
+      {(['en', 'es'] as const).map((l) => (
+        <button key={l} class={`seg${lang.value === l ? ' active' : ''}`} onClick={() => setLang(l)}>
+          {l === 'en' ? 'English' : 'Español'}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// --- help ----------------------------------------------------------------
+
+export function Help(p: { onClose: () => void }) {
+  return (
+    <Modal onClose={p.onClose} wide label={t('help')}>
+      <div class="modal-tag">{t('help')}</div>
+      <h2>{t('helpWhat')}</h2>
+      <p>{t('helpWhatBody')}</p>
+      <h2>{t('helpLoop')}</h2>
+      <ol class="how">
+        {(['how1', 'how2', 'how3', 'how4'] as Key[]).map((k, i) => (
+          <li key={k}>
+            <b>{i + 1}</b>
+            {t(k)}
+          </li>
+        ))}
+      </ol>
+      <h2>{t('helpGlossary')}</h2>
+      <ul class="glossary">
+        {(['g.flops', 'g.split', 'g.scaling', 'g.power', 'g.models', 'g.pdoom', 'g.offline'] as Key[]).map(
+          (k) => {
+            const [term, ...rest] = t(k).split(' — ');
+            return (
+              <li key={k}>
+                <b>{term}</b> {rest.join(' — ')}
+              </li>
+            );
+          },
+        )}
+      </ul>
+    </Modal>
+  );
+}
+
+// --- settings ------------------------------------------------------------
+
+export function Settings(p: { onClose: () => void }) {
+  const [text, setText] = useState('');
+  const prefs = audioPrefs.value;
+  return (
+    <Modal onClose={p.onClose} label={t('settings')}>
+      <div class="modal-tag">{t('settings')}</div>
+      <div class="setting">
+        <span>{t('language')}</span>
+        <LangSwitch />
+      </div>
+      <div class="setting">
+        <span>{t('sound')}</span>
+        <Toggle on={prefs.sfx} onChange={(v) => setAudioPrefs({ sfx: v })} />
+      </div>
+      <div class="setting">
+        <span>{t('music')}</span>
+        <Toggle on={prefs.music} onChange={(v) => setAudioPrefs({ music: v })} />
+      </div>
+      <h2>{t('save')}</h2>
+      <textarea
+        rows={4}
+        placeholder={t('importPrompt')}
+        value={text}
+        onInput={(e) => setText(e.currentTarget.value)}
+      />
+      <div class="row-buttons">
+        <button class="key" onClick={() => (save(), pushLog(t('saved')))}>
+          {t('saveNow')}
+        </button>
+        <button class="key" onClick={() => setText(exportSave())}>
+          {t('export')}
+        </button>
+        <button
+          class="key"
+          onClick={() => (loadSave(text) ? pushLog(t('imported'), 'good') : pushLog(t('importBad'), 'warn'))}
+        >
+          {t('import')}
+        </button>
+        <button
+          class="key key-danger"
+          onClick={() => confirm(t('resetConfirm')) && (resetGame(), p.onClose())}
+        >
+          {t('reset')}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+function Toggle(p: { on: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div class="seg-group">
+      <button class={`seg${p.on ? ' active' : ''}`} onClick={() => p.onChange(true)}>
+        {t('on')}
+      </button>
+      <button class={`seg${!p.on ? ' active' : ''}`} onClick={() => p.onChange(false)}>
+        {t('off')}
+      </button>
+    </div>
+  );
+}
+
+// --- victory -------------------------------------------------------------
+
+export function Victory(p: { onClose: () => void }) {
+  const s = game.value;
+  const [copied, setCopied] = useState(false);
+  const time = fmtClock(s.eraCompleteAt ?? s.time);
+  const rank = playerRank(s);
+  const pd = fmtPct(pDoom(s));
+  const text = t('shareText', { t: time, rank, p: pd });
+  const share = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(GAME_URL)}`;
+  const stats: [Key, string][] = [
+    ['statTime', time],
+    ['statRank', `#${rank} / ${RIVALS.length + 1}`],
+    ['statModels', `${s.modelsShipped} / ${MODELS.length}`],
+    ['statPapers', String(s.research.length)],
+    ['statPdoom', pd],
+    ['statFlops', fmt(s.flopsSpentTraining)],
+  ];
+  return (
+    <Modal onClose={p.onClose} label={t('victoryTitle')}>
+      <div class="victory">
+        <div class="modal-tag tone-ok">{t('victoryTag')}</div>
+        <h2 class="victory-title">{t('victoryTitle')}</h2>
+        <p>{t('victoryLead')}</p>
+        <dl class="victory-stats">
+          {stats.map(([k, v]) => (
+            <div key={k}>
+              <dt>{t(k)}</dt>
+              <dd>{v}</dd>
+            </div>
+          ))}
+        </dl>
+        <div class="row-buttons">
+          <a class="key key-primary" href={share} target="_blank" rel="noopener noreferrer">
+            {t('shareX')}
+          </a>
+          <button
+            class="key"
+            onClick={() => {
+              void navigator.clipboard?.writeText(`${text} ${GAME_URL}`).then(() => setCopied(true));
+            }}
+          >
+            {copied ? t('copied') : t('copyResult')}
+          </button>
+          <button class="key" onClick={p.onClose}>
+            {t('keepPlaying')}
+          </button>
+        </div>
+        <p class="dim small">{t('era2Soon')}</p>
+      </div>
+    </Modal>
+  );
+}

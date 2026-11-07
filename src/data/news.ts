@@ -1,9 +1,9 @@
 import type { Lang } from '../ui/i18n.ts';
 
-// News ticker lines. A language with no lines falls back to English.
+// Newswire headlines, shown in random order between event-driven headlines.
 export const NEWS: Record<Lang, string[]> = {
   en: [
-    "Local man's garage now consumes more power than his town. Town council 'thrilled'.",
+    "Local man's garage now draws more power than his town. Town council 'thrilled'.",
     "Rival lab unveils 'thinking machine'. Machine declines to comment.",
     'Utility company sends you a fruit basket. Also sends the bill.',
     'Neighbors report the street lights dim every time you press Enter.',
@@ -18,7 +18,36 @@ export const NEWS: Record<Lang, string[]> = {
     "Fire department adds your address to speed dial. 'Just in case,' says chief.",
     'Breakthrough: model learns to apologize. Lawyers advise against shipping it.',
     'Area mom asks if the superintelligence could at least fold laundry.',
-    'Analysts predict ASI by 1990, flying cars by 1991, and a bigger fuse by Tuesday.',
+    'Analysts predict ASI by 1990, flying cars by 1991 and a bigger fuse by Tuesday.',
+    "Op-ed: 'Is it a bubble?' Author's fund owns 40% of the bubble.",
+    'Startup raises $2M on a napkin that says "but bigger". Napkin valued at $40M.',
+    "Leading lab promises AGI 'in five years'. Promise renewed annually since 1956.",
+    'Model achieves superhuman performance on test it was trained on. Press release issued.',
+    'Shortage of math coprocessors blamed on "three guys in a garage". You are one of them.',
+    'Philosophers debate whether the model is conscious. Model debates whether philosophers are.',
   ],
-  es: [],
+  es: [
+    'El garaje de un vecino consume más electricidad que todo el pueblo. El ayuntamiento, «encantado».',
+    'Un laboratorio rival presenta una «máquina pensante». La máquina declina hacer declaraciones.',
+    'La compañía eléctrica te envía una cesta de fruta. Y también la factura.',
+    'Los vecinos denuncian que las farolas parpadean cada vez que pulsas Intro.',
+    'Los economistas coinciden: el cómputo es el nuevo petróleo. Las petroleras, «nada preocupadas».',
+    'Encuesta: 9 de cada 10 dentistas no saben qué es un FLOP. El décimo ya tiene una granja de servidores.',
+    'Se suspende la comparecencia sobre mentes artificiales: nadie encontraba el mando del vídeo.',
+    'Avistado un inversor de capital riesgo en la urbanización preguntando por «el del garaje que zumba».',
+    'Una investigadora de seguridad advierte de riesgos. Su presupuesto, «reasignado a crecimiento».',
+    'Los recreativos del centro comercial registran pérdidas: los chavales prefieren «al de los ordenadores».',
+    'Tus resultados en el benchmark suben un 400%. Tu benchmark también es el único que existe.',
+    'Guerra Fría: ambas superpotencias aseguran que su IA es «un poco más lista que la tuya».',
+    'Los bomberos añaden tu dirección a la marcación rápida. «Por si acaso», dice el jefe.',
+    'Avance histórico: el modelo aprende a pedir perdón. Los abogados desaconsejan lanzarlo.',
+    'Una madre de la zona pregunta si la superinteligencia podría, al menos, doblar la ropa.',
+    'Los analistas prevén la ASI para 1990, coches voladores para 1991 y un fusible más gordo para el martes.',
+    'Opinión: «¿Es una burbuja?». El fondo del autor posee el 40% de la burbuja.',
+    'Una startup levanta 2 millones con una servilleta que dice «pero más grande». La servilleta vale 40.',
+    'Un laboratorio puntero promete la AGI «en cinco años». Promesa renovada cada año desde 1956.',
+    'Un modelo logra rendimiento sobrehumano en el test con el que fue entrenado. Nota de prensa enviada.',
+    'La escasez de coprocesadores se atribuye a «tres tipos en un garaje». Tú eres uno de ellos.',
+    'Los filósofos debaten si el modelo es consciente. El modelo debate si los filósofos lo son.',
+  ],
 };

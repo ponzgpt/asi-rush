@@ -1,185 +1,166 @@
-import { useEffect, useRef, useState } from 'preact/hooks';
-import { BUILDINGS, BUILDING_ORDER, ECONOMY, MILESTONES } from '../data/economy.ts';
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { NEWS } from '../data/news.ts';
+import { audioPrefs, setAudioPrefs } from '../audio/audio.ts';
 import { mountScene } from '../scene/scene.ts';
-import { buildingCost, fuseCost, powerCapMW, powerDemandMW, rates, risk, throttle } from '../sim/sim.ts';
-import { dispatch, exportSave, game, loadSave, log, pushLog, resetGame, save } from '../state/store.ts';
-import { fmt } from './format.ts';
-import { lang, setLang, t } from './i18n.ts';
+import { playerRank } from '../sim/sim.ts';
+import { dispatch, displayLab, game, headlines, labName } from '../state/store.ts';
+import { fmtClock } from './format.ts';
+import { lang, t } from './i18n.ts';
+import { Boot, Help, Settings, Victory } from './overlays.tsx';
+import { Allocation, BenchmarkButton, GoalBar, LabLog, ObjectiveCard, Shop, Stats } from './panels.tsx';
 
-function Resources() {
-  const s = game.value;
-  const r = rates(s);
-  const hot = throttle(s) < 1;
-  return (
-    <section class="panel resources">
-      <Row label={t('cash')} value={`$${fmt(s.cash)}`} sub={`+$${fmt(r.cashPerSec)}/s`} />
-      <Row label={t('compute')} value={`${fmt(r.flops)} FLOP/s`} sub={hot ? t('throttled') : ''} hot={hot} />
-      <Row
-        label={t('power')}
-        value={`${powerDemandMW(s).toFixed(3)} / ${powerCapMW(s).toFixed(3)} MW`}
-        sub={hot ? `${Math.round(throttle(s) * 100)}%` : ''}
-        hot={hot}
-      />
-      <Row
-        label={t('capability')}
-        value={`${fmt(s.capability)} / ${fmt(MILESTONES.eraGoalCap)}`}
-        sub={`+${fmt(r.capPerSec, 2)}/s`}
-      />
-      <Row label={t('risk')} value={fmt(risk(s))} sub="alignment: 0" />
-    </section>
-  );
-}
-
-function Row(p: { label: string; value: string; sub: string; hot?: boolean }) {
-  return (
-    <div class={`row${p.hot ? ' hot' : ''}`}>
-      <span class="label">{p.label}</span>
-      <span class="value">{p.value}</span>
-      <span class="sub">{p.sub}</span>
-    </div>
-  );
-}
-
-function Shop() {
-  const s = game.value;
-  return (
-    <section class="panel">
-      <button class="big" onClick={() => dispatch({ type: 'benchmark' })}>
-        {t('benchmark')} <small>{t('benchmarkHint', { n: ECONOMY.benchmarkCash })}</small>
-      </button>
-      <h2>{t('buildings')}</h2>
-      {BUILDING_ORDER.map((id) => {
-        const cost = buildingCost(id, s.owned[id]);
-        const b = BUILDINGS[id];
-        return (
-          <button
-            key={id}
-            class="buy"
-            disabled={s.cash.lt(cost)}
-            onClick={() => dispatch({ type: 'buy', building: id })}
-          >
-            <span>
-              {t(id)} <b>×{s.owned[id]}</b>
-            </span>
-            <span class="meta">
-              {fmt(b.flops)} FLOP/s · {(b.powerMW * 1000).toFixed(0)} kW
-            </span>
-            <span class="cost">${fmt(cost)}</span>
-          </button>
-        );
-      })}
-      <button
-        class="buy"
-        disabled={s.cash.lt(fuseCost(s.fuseLevel))}
-        onClick={() => dispatch({ type: 'buyFuse' })}
-      >
-        <span>{t('fuse')}</span>
-        <span class="meta">{t('fuseHint', { n: s.fuseLevel })}</span>
-        <span class="cost">${fmt(fuseCost(s.fuseLevel))}</span>
-      </button>
-      <h2>{t('allocation')}</h2>
-      <label class="slider">
-        <span>
-          {t('inference')} {Math.round((1 - s.trainShare) * 100)}%
-        </span>
-        <input
-          type="range"
-          min={0}
-          max={100}
-          value={Math.round(s.trainShare * 100)}
-          onInput={(e) => dispatch({ type: 'setTrainShare', share: Number(e.currentTarget.value) / 100 })}
-        />
-        <span>
-          {t('training')} {Math.round(s.trainShare * 100)}%
-        </span>
-      </label>
-    </section>
-  );
-}
+const VICTORY_KEY = 'asi-rush-victory-seen';
 
 function Scene() {
   const host = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (host.current) void mountScene(host.current, () => game.peek());
+    if (host.current)
+      void mountScene(
+        host.current,
+        () => game.peek(),
+        () => labName.peek(),
+      );
   }, []);
-  return <div class="scene" ref={host} />;
+  return <div class="scene" ref={host} aria-label="Your lab" role="img" />;
 }
 
-function Ticker() {
-  const [i, setI] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => setI((n) => n + 1), 14000);
-    return () => clearInterval(id);
-  }, []);
-  const lines = NEWS[lang.value].length ? NEWS[lang.value] : NEWS.en;
+function Newswire() {
+  const items = useMemo(() => {
+    const pool = [...NEWS[lang.value]].sort(() => Math.random() - 0.5).slice(0, 8);
+    return [...headlines.value, ...pool];
+  }, [headlines.value, lang.value]);
+  const text = items.join('   ◆   ');
   return (
-    <div class="ticker">
-      <span key={i}>{lines[i % lines.length]}</span>
+    <div class="newswire" aria-live="off">
+      <span class="newswire-label">{t('newswire')}</span>
+      <div class="newswire-track">
+        <div
+          class="newswire-strip"
+          key={text}
+          style={{ animationDuration: `${Math.max(40, text.length / 7)}s` }}
+        >
+          <span>{text}</span>
+          <span aria-hidden="true">{text}</span>
+        </div>
+      </div>
     </div>
   );
 }
 
-function Log() {
+function IconButton(p: {
+  label: string;
+  onClick: () => void;
+  children: preact.ComponentChildren;
+  off?: boolean;
+}) {
   return (
-    <section class="panel log">
-      <h2>{t('log')}</h2>
-      <ul>
-        {log.value.map((line, i) => (
-          <li key={log.value.length - i}>&gt; {line}</li>
-        ))}
-      </ul>
-    </section>
+    <button class={`icon-btn${p.off ? ' off' : ''}`} aria-label={p.label} title={p.label} onClick={p.onClick}>
+      {p.children}
+    </button>
   );
 }
 
-function SavePanel() {
-  const [text, setText] = useState('');
+function Header(p: { onHelp: () => void; onSettings: () => void }) {
+  const s = game.value;
+  const prefs = audioPrefs.value;
   return (
-    <section class="panel">
-      <h2>{t('save')}</h2>
-      <textarea
-        placeholder={t('importPrompt')}
-        value={text}
-        onInput={(e) => setText(e.currentTarget.value)}
-        rows={3}
-      />
-      <div class="buttons">
-        <button onClick={() => (save(), pushLog(t('saved')))}>{t('save')}</button>
-        <button onClick={() => setText(exportSave())}>{t('export')}</button>
-        <button onClick={() => pushLog(loadSave(text) ? t('imported') : t('importBad'))}>
-          {t('import')}
-        </button>
-        <button onClick={() => confirm(t('resetConfirm')) && resetGame()}>{t('reset')}</button>
-        <button onClick={() => setLang(lang.value === 'en' ? 'es' : 'en')}>
-          {lang.value === 'en' ? 'ES' : 'EN'}
-        </button>
+    <header class="top">
+      <div class="brand">
+        <span class="logo small">
+          ASI<span>RUSH</span>
+        </span>
+        <span class="era">
+          {t('era')} · <b>{displayLab()}</b>
+        </span>
       </div>
-    </section>
+      <GoalBar />
+      <div class="top-meta">
+        <span class="clock" title="T+">
+          T+{fmtClock(s.time)}
+        </span>
+        <span class="rank">#{playerRank(s)}</span>
+        <IconButton
+          label={t('music')}
+          off={!prefs.music}
+          onClick={() => setAudioPrefs({ music: !prefs.music })}
+        >
+          ♫
+        </IconButton>
+        <IconButton label={t('sound')} off={!prefs.sfx} onClick={() => setAudioPrefs({ sfx: !prefs.sfx })}>
+          ◖
+        </IconButton>
+        <IconButton label={t('help')} onClick={p.onHelp}>
+          ?
+        </IconButton>
+        <IconButton label={t('settings')} onClick={p.onSettings}>
+          ⚙
+        </IconButton>
+      </div>
+    </header>
   );
+}
+
+function readSeen(): boolean {
+  try {
+    return localStorage.getItem(VICTORY_KEY) === '1';
+  } catch {
+    return false;
+  }
 }
 
 export function App() {
-  const done = game.value.eraCompleteAt !== null;
+  const [booted, setBooted] = useState(false);
+  const [modal, setModal] = useState<'help' | 'settings' | null>(null);
+  const [victorySeen, setVictorySeen] = useState(readSeen);
+  const won = game.value.eraCompleteAt !== null;
+
+  // Space runs a benchmark (desktop shortcut)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement;
+      if (!booted || modal || e.code !== 'Space' || el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')
+        return;
+      e.preventDefault();
+      if (!e.repeat) dispatch({ type: 'benchmark' });
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [booted, modal]);
+
+  const closeVictory = () => {
+    setVictorySeen(true);
+    try {
+      localStorage.setItem(VICTORY_KEY, '1');
+    } catch {
+      /* storage unavailable */
+    }
+  };
+
   return (
-    <main>
-      <header>
-        <h1>{t('title')}</h1>
-        <span>{t('subtitle')}</span>
-      </header>
-      {done && <div class="banner">{t('eraComplete')}</div>}
-      <div class="layout">
-        <div class="left">
-          <Scene />
-          <Ticker />
-          <Resources />
-        </div>
-        <div class="right">
-          <Shop />
-          <Log />
-          <SavePanel />
-        </div>
+    <>
+      <div class="app">
+        <Header onHelp={() => setModal('help')} onSettings={() => setModal('settings')} />
+        <main class="layout">
+          <div class="col-main">
+            <div class="scene-frame">
+              <Scene />
+            </div>
+            <Stats />
+            <LabLog />
+          </div>
+          <aside class="col-side">
+            <ObjectiveCard />
+            <BenchmarkButton />
+            <Allocation />
+            <Shop />
+          </aside>
+        </main>
+        <Newswire />
       </div>
-    </main>
+      {!booted && <Boot onDone={() => setBooted(true)} />}
+      {booted && modal === 'help' && <Help onClose={() => setModal(null)} />}
+      {booted && modal === 'settings' && <Settings onClose={() => setModal(null)} />}
+      {booted && won && !victorySeen && <Victory onClose={closeVictory} />}
+    </>
   );
 }
