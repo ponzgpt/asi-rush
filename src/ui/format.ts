@@ -12,7 +12,9 @@ export function fmt(value: Decimal | number, digits = 1): string {
 }
 
 export function fmtPower(mw: number): string {
-  return mw < 1 ? `${(mw * 1000).toFixed(0)} kW` : `${mw.toFixed(2)} MW`;
+  if (mw < 1) return `${(mw * 1000).toFixed(0)} kW`;
+  if (mw < 1000) return `${mw.toFixed(mw < 100 ? 2 : 0)} MW`;
+  return `${(mw / 1000).toFixed(2)} GW`;
 }
 
 export function fmtPct(x: number): string {

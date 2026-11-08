@@ -8,4 +8,6 @@ export const H = 270;
 export interface SceneModule {
   container: Container;
   update: (s: State, deltaMS: number) => void;
+  /** Colors used to extend the scene past its 480x270 frame on tall or wide screens. */
+  edges: { top: string; bottom: string; stars: boolean };
 }

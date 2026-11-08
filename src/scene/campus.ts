@@ -279,5 +279,5 @@ export function createCampus(root: Container, getLab: () => string): SceneModule
     }
   };
 
-  return { container: world, update };
+  return { container: world, update, edges: { top: C.sky0, bottom: K.ground, stars: true } };
 }

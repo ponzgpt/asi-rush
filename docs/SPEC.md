@@ -45,8 +45,12 @@ Vite + TypeScript (strict) · PixiJS v8 (scene) · Preact + @preact/signals (DOM
 - **Models:** 13 releases; each raises price per token and pays launch hype.
 - **Rivals:** ClosedAI, Misanthropic, YAI, ShallowMind (parodies). Stepped curves, ~30 lead changes per game,
   release headlines on the newswire.
-- **Layout:** left (leaderboard, log, resources) · centre (the lab) · right (release, research, hardware, then the
-  benchmark key, its upgrade and the allocation). Newswire under the header.
+- **Layout:** hero bar (title, lab name, ☰ menu with music, sound, fullscreen, help, settings) · NYSE-style
+  newswire (headlines plus live lab "quotes": capability and 5-minute change) · left: leaderboard and log ·
+  centre: the round strip (era, round, progress with the leader's marker, rival and player ETAs, game clock) above
+  the lab, with resources and P(doom) as an in-scene HUD · right: release, research and hardware (each scrolls on
+  its own), then the benchmark key, its upgrade and the allocation. The scene grows extra sky and ground to fill
+  tall frames.
 - **Tutorial:** 9 objectives with coach marks until the Series A, then one-off tips (papers, click upgrades,
   P(doom), deadlines, each new era). Help has a "winning and losing" section and a glossary.
 - **Audio:** per-event SFX, room tone and five original synth tracks that rotate every two passes, with era

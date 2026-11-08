@@ -671,9 +671,7 @@ textarea {
   line-height: 1;
 }
 .side-what {
-  font-size: 11px;
-  color: var(--ink-3);
-  margin-top: 2px;
+  display: none; /* explained by the tutorial and the tooltip */
 }
 /* short desktop screens: keep the deck compact so the scene stays big (the tutorial explains the split) */
 @media (max-height: 880px) and (min-width: 1181px) {
@@ -1463,6 +1461,297 @@ li.down .board-move {
   text-shadow: 0 0 18px #ff5a5288;
 }
 
+/* ---------- hero header + menu ---------- */
+
+.top.hero {
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 4px 0 6px;
+  border-bottom: 0;
+  margin: 0;
+}
+.hero .brand {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 16px;
+}
+.hero .logo.small {
+  font-size: 30px;
+}
+.tagline {
+  font-size: 12px;
+  color: var(--ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hero-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.lab-name {
+  font-family: var(--font-pixel);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--ink-2);
+  text-transform: uppercase;
+}
+.menu {
+  position: relative;
+}
+.menu-pop {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 30;
+  min-width: 220px;
+  padding: 6px;
+  background: var(--panel-2);
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+  box-shadow: 0 16px 40px -8px #000;
+  animation: slide-in 0.15s ease-out;
+}
+.menu-item {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+.menu-item:hover {
+  background: var(--panel);
+}
+.menu-state {
+  font-size: 11px;
+  color: var(--ink-3);
+}
+.menu-state.on {
+  color: var(--ok);
+}
+
+/* ---------- round strip (above the scene) ---------- */
+
+.stage {
+  gap: 10px;
+}
+.round {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  padding: 10px 14px;
+  background: var(--panel);
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+}
+.round-era,
+.round-clock {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.round-kicker {
+  font-family: var(--font-pixel);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.round-name {
+  font-family: var(--font-pixel);
+  font-size: 18px;
+  color: var(--cap);
+  text-shadow: 0 0 12px #b38cff66;
+}
+.round .bar {
+  height: 10px;
+}
+.round-clock {
+  align-items: flex-end;
+}
+.clock-num {
+  font-family: var(--font-crt);
+  font-size: 28px;
+  line-height: 1;
+  color: var(--ink-2);
+}
+
+/* ---------- resources HUD inside the scene ---------- */
+
+.scene-frame .stats {
+  position: absolute;
+  left: 22px;
+  right: 22px;
+  bottom: 22px;
+  z-index: 2;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+  pointer-events: auto;
+}
+.scene-frame .stat {
+  padding: 6px 9px;
+  gap: 2px;
+  background: #0b0912d9;
+  border-color: #ffffff1a;
+  backdrop-filter: blur(3px);
+  box-shadow: inset 0 1px 0 #ffffff10;
+}
+.scene-frame .stat-value {
+  font-size: 22px;
+}
+.scene-frame .stat-sub {
+  font-size: 10px;
+}
+.scene-frame .stats .stat:nth-child(5) {
+  grid-column: auto;
+}
+
+/* ---------- action column: each section scrolls on its own ---------- */
+
+.actions {
+  overflow-y: auto !important; /* fallback only: sections below scroll on their own */
+}
+.actions .window {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.actions .window-body {
+  min-height: 0;
+  overflow-y: auto;
+}
+.actions .release-window {
+  flex: 0 0 auto !important;
+}
+.actions .research-window {
+  flex: 0 1 auto !important;
+  max-height: 36%;
+  min-height: 110px;
+}
+.actions .hardware-window {
+  flex: 1 1 0 !important;
+  min-height: 170px;
+}
+/* short screens: compact the release card and the deck so the lists keep their room */
+@media (max-height: 1100px) and (min-width: 1181px) {
+  .release-window .model-tag,
+  .release-window .chips {
+    display: none;
+  }
+  .release-window .model-card {
+    margin: 8px;
+    padding: 8px 10px;
+    gap: 6px;
+  }
+  .deck {
+    gap: 6px;
+    padding-top: 8px;
+  }
+  .deck .bench {
+    padding: 7px 12px;
+  }
+  .deck .bench .key-title {
+    font-size: 14px;
+  }
+  .clickup {
+    padding: 5px 9px;
+  }
+  .alloc {
+    padding: 8px 10px;
+    gap: 6px;
+  }
+}
+
+/* visible, on-theme scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #6b5a3a #0f0c18;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #0f0c18;
+  border-left: 1px solid var(--line);
+}
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(90deg, #8a7148, #6b5a3a);
+  border: 2px solid #0f0c18;
+  border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--cash);
+}
+
+/* ---------- NYSE-style newswire ---------- */
+
+.newswire {
+  height: 64px;
+  background:
+    repeating-linear-gradient(to bottom, #0000 0 2px, #00000055 2px 3px), linear-gradient(#0c0a08, #050403);
+  border: 1px solid #3a2f1c;
+  box-shadow: inset 0 0 24px #000;
+}
+.newswire-label {
+  gap: 8px;
+  padding: 0 16px;
+  background: linear-gradient(#2a2216, #17120b);
+  color: var(--cash);
+  border-right: 1px solid #3a2f1c;
+  font-size: 12px;
+}
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ok);
+  box-shadow: 0 0 8px var(--ok);
+  animation: blink 1.4s steps(2) infinite;
+}
+.newswire-strip {
+  align-items: center;
+  font-size: 30px;
+  color: #ffc35a;
+  text-shadow: 0 0 8px #ffb33c88;
+  letter-spacing: 0.02em;
+}
+.newswire-strip .strip-copy {
+  display: inline-flex;
+  align-items: center;
+  padding-right: 0;
+}
+.newswire-strip .headline {
+  padding: 0 7em 0 0;
+}
+.newswire-strip .headline::before {
+  content: '◆';
+  color: #6b5a3a;
+  margin-right: 1em;
+}
+.quotes {
+  display: inline-flex;
+  gap: 2.2em;
+  padding-right: 7em;
+}
+.quote b {
+  color: var(--ink);
+  font-weight: 400;
+}
+.quote.up {
+  color: var(--ok);
+  text-shadow: 0 0 8px #7dffb066;
+}
+.quote.down {
+  color: var(--doom);
+  text-shadow: 0 0 8px #ff5a5266;
+}
+
 /* ---------- coach marks ---------- */
 
 .coach-ring {
@@ -1554,7 +1843,10 @@ li.down .board-move {
     aspect-ratio: 16 / 9;
   }
   .actions {
-    overflow: visible;
+    overflow: visible !important;
+  }
+  .hardware-window .window-body {
+    max-height: 520px;
   }
   .rail-left .log-window .window-body {
     max-height: 240px;
@@ -1595,10 +1887,35 @@ li.down .board-move {
   .scene-frame {
     padding: 6px;
   }
-  .scene-frame .objective {
+  .scene-frame .objective,
+  .scene-frame .stats {
     position: static;
     width: auto;
     margin-top: 6px;
+  }
+  .scene-frame .stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .scene-frame .stats .stat:nth-child(5) {
+    grid-column: 1 / -1;
+  }
+  .round {
+    order: 0;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .round-progress {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .tagline,
+  .lab-name {
+    display: none;
+  }
+  .newswire {
+    height: 48px;
+  }
+  .newswire-strip {
+    font-size: 24px;
   }
   /* phone order: scene, deck, actions, leaderboard, resources, log */
   .stage,

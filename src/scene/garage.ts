@@ -572,5 +572,5 @@ export function createGarage(root: Container, getLab: () => string): SceneModule
       flashAlpha *= 0.86;
     }
   };
-  return { container: world, update };
+  return { container: world, update, edges: { top: C.sky0, bottom: C.asphalt, stars: true } };
 }

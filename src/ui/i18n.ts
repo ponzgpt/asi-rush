@@ -5,6 +5,7 @@ export type Lang = 'en' | 'es';
 const en = {
   // shell
   title: 'ASI RUSH',
+  heroTagline: 'Build a superintelligence in your garage. It is 1986.',
   'era.0': 'Era I · The Garage',
   'era.1': 'Era II · The Warehouse',
   'era.2': 'Era III · The Campus',
@@ -368,6 +369,7 @@ export type Key = keyof typeof en;
 
 const es: Record<Key, string> = {
   title: 'ASI RUSH',
+  heroTagline: 'Construye una superinteligencia en tu garaje. Estamos en 1986.',
   'era.0': 'Era I · El Garaje',
   'era.1': 'Era II · El Almacén',
   'era.2': 'Era III · El Campus',

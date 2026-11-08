@@ -103,25 +103,37 @@ export function GoalBar() {
   const losing = rival !== null && rival < 600 && (mine === null || rival < mine);
   const lab = tk(`rival.${top.rival.id}`);
   return (
-    <div class="goal" data-coach="goal" title={t('roundHint', { n: fmtInt(era.goal), round })}>
-      <div class="goal-row">
-        <span class="goal-label">
-          {tk(`era.${s.era}`)} · <b>{round}</b>
-        </span>
-        <span class="goal-num">
-          {fmt(cap)} <span class="dim">/ {era.goal < 1e6 ? fmtInt(era.goal) : fmt(era.goal)}</span>
-        </span>
+    <section class="round" data-coach="goal" title={t('roundHint', { n: fmtInt(era.goal), round })}>
+      <div class="round-era">
+        <span class="round-kicker">{tk(`era.${s.era}`)}</span>
+        <span class="round-name">{round}</span>
       </div>
-      <Bar value={cap / era.goal} tone="cap" label={round} marker={top.cap / era.goal} />
-      {rival !== null && (
+      <div class="round-progress">
+        <div class="goal-row">
+          <span class="goal-num">
+            {fmt(cap)} <span class="dim">/ {era.goal < 1e6 ? fmtInt(era.goal) : fmt(era.goal)}</span>
+          </span>
+          <span class="dim small">{t('capability')}</span>
+        </div>
+        <Bar value={cap / era.goal} tone="cap" label={round} marker={top.cap / era.goal} />
         <div class={`countdown${losing ? ' losing' : ''}`}>
-          <span>{rival === 0 ? t('deadlineNow', { lab }) : t('deadline', { lab, t: fmtClock(rival) })}</span>
+          <span>
+            {rival === null
+              ? ''
+              : rival === 0
+                ? t('deadlineNow', { lab })
+                : t('deadline', { lab, t: fmtClock(rival) })}
+          </span>
           <span class="dim">
             {mine === null ? t('youStalled') : mine < 36_000 ? t('youEta', { t: fmtClock(mine) }) : ''}
           </span>
         </div>
-      )}
-    </div>
+      </div>
+      <div class="round-clock" title="T+">
+        <span class="round-kicker">T+</span>
+        <span class="clock-num">{fmtClock(s.time)}</span>
+      </div>
+    </section>
   );
 }
 
@@ -315,14 +327,14 @@ export function Allocation() {
         <span class="dim small">{t('allocTotal', { n: fmt(r.flops) })}</span>
       </div>
       <div class="alloc-sides">
-        <div class="side tone-cash">
+        <div class="side tone-cash" title={t('servingWhat')}>
           <div class="side-head">
             {t('serving')} <b>{100 - pct}%</b>
           </div>
           <div class="side-rate">+${fmt(r.cashPerSec)}/s</div>
           <div class="side-what">{t('servingWhat')}</div>
         </div>
-        <div class="side tone-cap right">
+        <div class="side tone-cap right" title={t('trainingWhat')}>
           <div class="side-head">
             {t('training')} <b>{pct}%</b>
           </div>
@@ -379,7 +391,7 @@ function Release() {
   const shippedInEra = MODELS.slice(0, i).filter((m) => m.era === s.era).length;
   if (!next) {
     return (
-      <Section title={t('secRelease')}>
+      <Section title={t('secRelease')} class="release-window">
         <p class="empty">{t('allShipped')}</p>
       </Section>
     );
@@ -387,7 +399,11 @@ function Release() {
   const ready = canShip(s);
   const secs = capEta(next.cap, s);
   return (
-    <Section title={t('secRelease')} extra={<span class="dim">{`${shippedInEra}/${eraModels}`}</span>}>
+    <Section
+      title={t('secRelease')}
+      class="release-window"
+      extra={<span class="dim">{`${shippedInEra}/${eraModels}`}</span>}
+    >
       <div class={`model-card${ready ? ' ready' : ''}`}>
         <div class="model-head">
           <img src={ic.model} alt="" class="px-icon" />
@@ -444,7 +460,11 @@ function ResearchSection() {
   const done = RESEARCH.filter((r) => s.research.includes(r.id));
   const nextSecs = next ? capEta(next.unlockCap, s) : null;
   return (
-    <Section title={t('secResearch')} extra={<span class="dim">{`${done.length}/${RESEARCH.length}`}</span>}>
+    <Section
+      title={t('secResearch')}
+      class="research-window"
+      extra={<span class="dim">{`${done.length}/${RESEARCH.length}`}</span>}
+    >
       <div class="list">
         {open.map((r, k) => (
           <Item
@@ -504,6 +524,7 @@ function HardwareSection() {
   return (
     <Section
       title={t('secHardware')}
+      class="hardware-window"
       extra={
         <span class="seg-group">
           {([1, 10, 'max'] as const).map((m) => (

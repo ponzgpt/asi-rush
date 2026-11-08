@@ -326,7 +326,7 @@ export function createWarehouse(root: Container, getLab: () => string): SceneMod
     }
   };
 
-  return { container: world, update };
+  return { container: world, update, edges: { top: M.roof, bottom: M.floor, stars: false } };
 }
 
 function shortNum(n: number): string {
