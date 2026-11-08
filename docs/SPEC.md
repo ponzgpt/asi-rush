@@ -24,33 +24,41 @@ Vite + TypeScript (strict) · PixiJS v8 (scene) · Preact + @preact/signals (DOM
 | `src/save`            | Versioned JSON → lz-string base64; autosave 30 s; offline catch-up ≤ 24 h in 60 s steps            |
 | `scripts/simulate.ts` | Headless greedy player; milestone CSV and per-minute timeline                                      |
 
-## Era I — "The Garage" (shipped)
+## Game (shipped)
 
-- **Resources:** Runway (cash), Compute (FLOP/s), Power (kW vs. fuse cap), Capability, P(doom).
-- **Hardware**, cost `C0 · 1.12^n`, buy ×1/×10/Max: Home PC, Accelerator Card, Server Rack. Revealed progressively.
-- **Power:** demand > cap ⇒ compute × cap/demand (throttle, never off). "Bigger Fuse" (repeatable) doubles the cap.
-- **Allocation slider:** serving → cash; training → `dCap/s = k · capMult · (trainFLOPs/flopRef)^0.35`.
-- **Research** (9 one-time papers, unlocked by Capability): multipliers on training, revenue, compute, power draw,
-  plus alignment. Names nod to real history and industry vocabulary (backprop 1986, scraping, RLHF, scaling laws).
-- **Models** (5 releases): ship when Capability allows; each raises price per token and pays launch hype.
-- **Rivals** (4 fictional labs) on a display-only leaderboard: `cap(t) = start + 1000 · (t/goal)^exp`.
-- **Risk:** `Risk = Cap^1.5 / (1 + alignment)`, shown as `P(doom) = risk / (risk + 5000)`.
-- **Layout:** full-viewport command deck on desktop (resources + live leaderboard + log | scene + benchmark +
-  allocation | release, research, hardware), two columns on tablets, one on phones. No tabs: every action is visible.
-- **Onboarding:** BIOS boot, briefing with the loop in four steps, lab naming, 9 guided objectives with coach marks
-  (a ring and bubble on the control each objective needs; skippable), help/glossary.
-- **Allocation:** each side shows its rate and what it buys; presets (make money / balanced / get smarter) and the ETA
-  to the next model release.
-- **Leaderboard:** always visible, rows slide when labs overtake each other, gap to every rival.
-- **Feedback:** per-event SFX, a six-section synth score (~90 s per pass, 4 seeded melody variants) whose layers build with Capability, scene reacts (screens, LEDs, sparks,
-  neighbours' lights dim on overload, whiteboard plots your scaling curve), lab log, newswire with event headlines.
-- **Goal:** Capability ≥ 1000 → "Series A closed" with stats and a share-to-X card.
+- **Eras and rounds:** Era I Garage → Series A (1,000 Capability), Era II Warehouse → Series B (100,000),
+  Era III Campus → Superintelligence (10,000,000). Each era is a new scene, new hardware and a bigger grid
+  connection (power upgrades: Bigger Fuse, Substation, Power Plant). Old hardware keeps working.
+- **Winning and losing:** close each round before every rival. If the leading rival reaches the goal first the
+  round is lost (retry the era from its start). If P(doom) reaches 99% the game is over. The header shows the
+  fastest rival's ETA and yours.
+- **Resources:** Runway (cash), Compute (FLOP/s), Power (vs. site cap), Capability, P(doom).
+- **Hardware** (cost `C0 · 1.12^n`, buy ×1/×10/Max): Home PC, Accelerator Card, Server Rack · Vector Supercomputer,
+  Hypercube Array · Wafer-Scale Engine, Data Hall. Over the power cap, compute throttles (never stops).
+- **Allocation:** serving → cash; training → `dCap/s = k · capMult · (trainFLOPs/flopRef)^0.35`; presets and the ETA
+  to the next release make the trade-off explicit.
+- **Benchmark key:** clicks pay cash; 7 upgrades (cherry-picked examples … benchmark saturation) multiply it and
+  add a share of revenue per click, so clicking stays useful all game.
+- **Research:** 22 one-time papers across the eras. The first costs $15; later ones cost more and multiply more.
+  Eight are alignment papers.
+- **P(doom):** `x^1.5 / (1 + x^1.5)`, `x = Capability / (400 · 4^alignment)`. Revenue × (1 − 0.6 · P(doom)).
+- **Models:** 13 releases; each raises price per token and pays launch hype.
+- **Rivals:** ClosedAI, Misanthropic, YAI, ShallowMind (parodies). Stepped curves, ~30 lead changes per game,
+  release headlines on the newswire.
+- **Layout:** left (leaderboard, log, resources) · centre (the lab) · right (release, research, hardware, then the
+  benchmark key, its upgrade and the allocation). Newswire under the header.
+- **Tutorial:** 9 objectives with coach marks until the Series A, then one-off tips (papers, click upgrades,
+  P(doom), deadlines, each new era). Help has a "winning and losing" section and a glossary.
+- **Audio:** per-event SFX, room tone and five original synth tracks that rotate every two passes, with era
+  playlists, seeded melody variations and layers that build with progress.
 
 ## Roadmap
 
 - **M0** Era 1 playable prototype, save/load, offline, deployed. ✅
 - **M0.5** Overhaul: art, audio, onboarding, research, models, rivals, share card. ✅
 - **M0.6** Full-screen layout, tutorial coach marks, live leaderboard, allocation clarity, long-form music. ✅
+- **M0.7** Eras II–III with scenes, funding rounds, defeat conditions, P(doom) mechanic, click upgrades, parody
+  rivals that trade the lead, contextual tips, five-track soundtrack. ✅
 - **M1** Simulator + balance: richer strategies, timeline CSV, pacing curves, tuning across Eras 1–2.
 - **M2** Vertical slice with art and audio (Eras 1–2): bitmap fonts, CRT filter, sprites, synth score.
 - **M3** Rivals (4 fictional labs) + "Pivot" prestige.
