@@ -112,6 +112,7 @@ const GLYPHS: Record<string, string> = {
   '^': '010101000000000',
   '>': '100010001010100',
   '&': '010101010101011',
+  '#': '101111101111101',
 };
 
 /** Width in pixels of a string in the 3x5 font (1px spacing). */
