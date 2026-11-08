@@ -57,24 +57,36 @@ function paintBackdrop(p: Painter) {
   p.rect(48, 20, 14, 14, C.moon);
   p.rect(46, 22, 18, 10, C.moon);
   p.rect(52, 24, 4, 3, C.moonShade);
-  // mountains
+  // far range (hazier), then the near range
+  for (let x = 0; x < W; x++) {
+    const h = 44 + Math.round(14 * Math.sin(x / 63 + 2) + 8 * Math.sin(x / 23));
+    p.rect(x, GROUND - 6 - h, 1, h, '#241c40');
+  }
+  for (let i = 0; i < 40; i++)
+    p.px(Math.floor(300 + rand(i + 700) * 170), 168 + Math.floor(rand(i + 800) * 8), C.cityLit); // distant town
   for (let x = 0; x < W; x++) {
     const h = 30 + Math.round(18 * Math.sin(x / 41) + 10 * Math.sin(x / 17 + 1) + 6 * Math.sin(x / 7));
     p.rect(x, GROUND - h, 1, h, K.mountain);
     p.px(x, GROUND - h, K.mountainEdge);
   }
-  // ground, parking lots, road
-  p.rect(0, GROUND - 14, W, H - GROUND + 14, K.ground);
-  p.rect(130, 232, W - 130, 6, K.lot);
-  p.rect(0, 246, W, 14, K.road);
-  for (let x = 6; x < W; x += 30) p.rect(x, 252, 14, 2, C.stripe);
-  p.rect(0, 260, W, H - 260, K.ground);
-  // the lake that cools everything (left foreground)
-  p.rect(0, 236, 128, 10, K.lake);
-  for (let x = 2; x < 126; x += 7) p.rect(x, 239 + (x % 3), 4, 1, K.lakeLight);
-  // perimeter fence
-  for (let x = 128; x < W; x += 6) p.rect(x, 238, 1, 6, C.metalDark);
-  p.rect(128, 238, W - 128, 1, C.metalDark);
+  p.dither(0, GROUND - 18, W, 4, K.mountain, K.ground);
+  // ground, trees, fence, road, shore and the lake that cools everything
+  p.rect(0, GROUND - 14, W, 234 - (GROUND - 14), K.ground);
+  for (let x = 0; x < W; x += 3)
+    if (rand(x + 40) > 0.4) p.px(x, GROUND - 14 + Math.floor(rand(x) * 40), '#1b2326');
+  for (let i = 0; i < 14; i++) {
+    const tx = 130 + i * 25 + Math.floor(rand(i + 5) * 8);
+    p.rect(tx + 2, 226, 1, 6, '#0d1210');
+    p.rect(tx, 220, 5, 7, '#0f1915');
+    p.rect(tx + 1, 217, 3, 3, '#0f1915');
+  }
+  for (let x = 0; x < W; x += 6) p.rect(x, 228, 1, 5, C.metalDark);
+  p.rect(0, 228, W, 1, C.metalDark);
+  p.rect(0, 234, W, 7, K.road);
+  for (let x = 6; x < W; x += 30) p.rect(x, 237, 14, 1, C.stripe);
+  p.rect(0, 241, W, 1, '#2a2f33');
+  p.rect(0, 242, W, H - 242, K.lake);
+  for (let y = 244; y < H; y += 3) for (let x = (y * 7) % 11; x < W; x += 13) p.rect(x, y, 5, 1, '#13224a');
 
   // the core building (wafer-scale engines live here)
   p.rect(CORE.x, CORE.y, CORE.w, CORE.h, K.core);
@@ -186,7 +198,7 @@ export function createCampus(root: Container, getLab: () => string): SceneModule
     const nTowers = Math.min(TOWERS.length, s.fuseLevel + 1);
     towers.forEach((sp, i) => {
       sp.visible = i < nTowers;
-      if (sp.visible && rand(i + Math.floor(time * 8)) > 0.55)
+      if (sp.visible && rand(i + Math.floor(time * 6)) > 0.7)
         steam.push({ x: sp.x + 15 + (rand(time + i) - 0.5) * 10, y: sp.y + 2, r: 3, life: 3 });
     });
 
@@ -208,7 +220,7 @@ export function createCampus(root: Container, getLab: () => string): SceneModule
       else
         fx.circle(Math.round(p.x), Math.round(p.y), Math.round(p.r)).fill({
           color: hex(K.steam),
-          alpha: 0.05 * p.life,
+          alpha: 0.025 * p.life,
         });
     }
 
@@ -266,18 +278,61 @@ export function createCampus(root: Container, getLab: () => string): SceneModule
     // traffic on the road and a plane overhead
     for (let i = 0; i < 4; i++) {
       const x = ((time * (30 + i * 8) + i * 130) % (W + 20)) - 10;
-      fx.rect(i % 2 ? W - x : x, 249 + (i % 2) * 6, 2, 1).fill(hex(i % 2 ? C.ledRed : C.window));
+      fx.rect(i % 2 ? W - x : x, 236 + (i % 2) * 3, 2, 1).fill(hex(i % 2 ? C.ledRed : C.window));
     }
     const px = ((time * 18) % (W + 60)) - 30;
     if (Math.floor(time * 2) % 2 === 0) fx.rect(px, 30 + Math.sin(time * 0.2) * 4, 1, 1).fill(hex(C.ledRed));
     fx.rect(px - 3, 31 + Math.sin(time * 0.2) * 4, 6, 1).fill(hex(C.metalDark));
 
-    // lake shimmer
-    for (let i = 0; i < 6; i++) {
+    // lake: the campus reflects upside down, squashed and rippling
+    const ry = (y: number) => 242 + Math.round((242 - y) * 0.22);
+    const ripple = (y: number) => Math.round(Math.sin(time * 1.5 + y * 0.9) * 1.5);
+    for (let r = 0; r < CORE.rows; r++)
+      for (let c = 0; c < CORE.cols; c++) {
+        const k = r * CORE.cols + c;
+        if (brownout || rand(k * 3.1) >= lit + 0.08) continue;
+        const wy = CORE.y + 16 + r * 7;
+        fx.rect(CORE.x + 6 + c * 10 + ripple(wy), ry(wy), 6, 1).fill({ color: hex(C.ledBlue), alpha: 0.45 });
+      }
+    fx.rect(CORE.x + CORE.w / 2 + ripple(CORE.y), ry(CORE.y - 24), 3, 1).fill({
+      color: hex(C.ledRed),
+      alpha: 0.6,
+    });
+    halls.forEach((sp, i) => {
+      if (!sp.visible) return;
+      const y = sp.y + sp.height - 8;
+      fx.rect(sp.x + 3 + ripple(y + i), ry(y), sp.width - 6, 1).fill({
+        color: hex(i % 2 ? C.led : C.ledBlue),
+        alpha: 0.3,
+      });
+    });
+    for (let i = 0; i < 8; i++) {
       if (rand(i + Math.floor(time * 3)) > 0.5)
-        fx.rect(4 + i * 20, 240 + (i % 2) * 3, 5, 1).fill(hex(K.lakeLight));
+        fx.rect(10 + i * 58, 250 + (i % 3) * 6, 9, 1).fill(hex(K.lakeLight));
     }
+
+    // searchlights sweeping the sky behind the core
+    for (let i = 0; i < 2; i++) {
+      const ang = -Math.PI / 2 + Math.sin(time * 0.35 + i * 2.1) * 0.55;
+      const ox = CORE.x + 14 + i * (CORE.w - 28);
+      const len = 260;
+      const spread = 0.05;
+      glow
+        .poly([
+          ox,
+          CORE.y,
+          ox + Math.cos(ang - spread) * len,
+          CORE.y + Math.sin(ang - spread) * len,
+          ox + Math.cos(ang + spread) * len,
+          CORE.y + Math.sin(ang + spread) * len,
+        ])
+        .fill({ color: 0xb8c8ff, alpha: 0.035 + pd * 0.03 });
+    }
+
+    // aircraft warning lights on the cooling towers
+    if (Math.floor(time * 1.3) % 2 === 0)
+      towers.forEach((sp) => sp.visible && fx.rect(sp.x + 14, sp.y - 1, 2, 2).fill(hex(C.ledRed)));
   };
 
-  return { container: world, update, edges: { top: C.sky0, bottom: K.ground, stars: true } };
+  return { container: world, update, edges: { top: C.sky0, bottom: K.lake, stars: true } };
 }

@@ -210,6 +210,46 @@ function paintBackdrop(p: Painter) {
   sag(p, 0, 63, POLE_X - 10, 63, 6, C.ink);
   sag(p, POLE_X + 14, 63, W, 63, 5, C.ink);
   sag(p, POLE_X + 9, 86, GX0 + 2, 128, 4, C.ink); // service drop into the garage
+
+  // street lamp on the pole
+  p.rect(POLE_X + 3, 95, 22, 2, C.poleDark);
+  p.rect(POLE_X + 20, 97, 8, 3, C.metalDark);
+  p.rect(POLE_X + 21, 99, 6, 1, C.tube);
+
+  // neighbour's chimney, porch, bushes
+  p.rect(66, 100, 9, 26, '#5b2e2a');
+  p.rect(64, 98, 13, 3, '#3e1f1c');
+  for (let y = 104; y < 124; y += 3) p.rect(66 + ((y / 3) % 2) * 2, y, 3, 1, '#45221f');
+  p.rect(14, 168, 22, 2, C.houseTrim); // porch roof
+  p.rect(34, 170, 3, 4, C.metalDark); // porch lamp
+  for (let i = 0; i < 9; i++) {
+    const x = 8 + i * 10;
+    p.rect(x, 194, 9, 6, '#183225');
+    p.rect(x + 2, 192, 5, 2, '#183225');
+    p.px(x + 3, 193, '#24472f');
+  }
+
+  // roof shingles catch a little moonlight
+  for (let y = PEAK + 4; y < CEIL - 3; y += 5)
+    for (let x = 140; x < 380; x += 7)
+      if (rand(x * 3 + y) > 0.55) p.rect(x + (y % 2) * 3, y, 3, 1, C.roofLight);
+  p.rect(GX0 - 8, CEIL - 1, GX1 - GX0 + 16, 1, C.metalDark); // gutter
+
+  // brick strip on the slab front
+  for (let x = GX0 - 2; x < GX1 + 2; x += 6) {
+    p.rect(x, SLAB + 1, 5, 2, '#5a3a32');
+    p.rect(x + 3, SLAB + 3, 5, 2, '#4d3029');
+  }
+
+  // sidewalk props: mailbox, trash cans
+  p.rect(108, 228, 2, 12, C.metalDark);
+  p.rect(105, 224, 8, 5, '#3a5ad8');
+  p.rect(105, 224, 8, 1, '#5c7af0');
+  p.rect(112, 225, 1, 2, C.ledRed);
+  for (const tx of [86, 94]) {
+    p.block(tx, 230, 7, 10, C.metalDark, C.metal, C.ink);
+    p.rect(tx - 1, 229, 9, 2, C.metal);
+  }
 }
 
 function sag(p: Painter, x0: number, y0: number, x1: number, y1: number, depth: number, color: string) {
@@ -217,6 +257,35 @@ function sag(p: Painter, x0: number, y0: number, x1: number, y1: number, depth: 
     const k = (x - x0) / Math.max(1, x1 - x0);
     p.px(x, Math.round(y0 + (y1 - y0) * k + depth * 4 * k * (1 - k)), color);
   }
+}
+
+function paintWagon(p: Painter) {
+  // 80s station wagon, wood panelling, banished from the garage to the street
+  p.rect(2, 4, 42, 7, C.beige);
+  p.rect(8, 0, 30, 5, C.beige);
+  p.rect(10, 1, 8, 3, C.screenBg);
+  p.rect(20, 1, 8, 3, C.screenBg);
+  p.rect(30, 1, 7, 3, C.screenBg);
+  p.rect(4, 6, 38, 3, C.wood);
+  p.rect(4, 6, 38, 1, C.woodLight);
+  p.rect(0, 9, 46, 2, C.metalDark);
+  p.rect(7, 10, 6, 4, C.ink);
+  p.rect(33, 10, 6, 4, C.ink);
+  p.rect(9, 11, 2, 2, C.metal);
+  p.rect(35, 11, 2, 2, C.metal);
+  p.rect(44, 6, 2, 2, C.ledRed);
+  p.rect(0, 6, 2, 2, C.beigeLight);
+}
+
+function paintCat(frame: 0 | 1) {
+  return (p: Painter) => {
+    p.rect(1, 2, 6, 3, '#2a2230');
+    p.rect(5, 1, 3, 3, '#2a2230');
+    p.px(5, 0, '#2a2230');
+    p.px(7, 0, '#2a2230');
+    p.px(6, 2, C.ledAmber);
+    p.rect(0, frame ? 1 : 3, 1, frame ? 3 : 2, '#2a2230');
+  };
 }
 
 // --- scene ---------------------------------------------------------------
@@ -274,6 +343,9 @@ export function createGarage(root: Container, getLab: () => string): SceneModule
   const pcs = pool(tex.pc, PC_SLOTS);
   const cards = pool(tex.card, CARD_SLOTS);
   const founder = place(tex.founder[0] ?? tex.pc, BENCH_X - 14, FLOOR + 4 - FOUNDER.h);
+  const wagon = place(makeTexture(46, 14, paintWagon), 14, 249);
+  const catTex = [makeTexture(8, 5, paintCat(0)), makeTexture(8, 5, paintCat(1))];
+  const cat = place(catTex[0] ?? tex.pc, 0, 0);
 
   const signTex = { name: '', sprite: place(tex.pc, 0, 0) };
   signTex.sprite.visible = false;
@@ -564,6 +636,57 @@ export function createGarage(root: Container, getLab: () => string): SceneModule
     }
     const pd = Math.round(pDoom(s) * 100);
     drawText((x, y) => fx.rect(x, y, 1, 1).fill(hex(C.markerRed)), BOARD.x + 34, BOARD.y + 2, `P=${pd}%`);
+
+    // the cat sleeps on the warmest machine it can find
+    const racked = nRack > 0 ? racksIn[0] : nCard > 0 ? rig : pcs[0];
+    cat.visible = nPc > 0;
+    if (racked) cat.position.set(racked.x + 4, racked.y - 5);
+    cat.texture = catTex[Math.floor(time * 0.7) % 7 === 0 ? 1 : 0] ?? cat.texture;
+    wagon.position.y = 249 + (Math.floor(time * 0.5) % 9 === 0 ? -1 : 0);
+
+    // pizza boxes pile up with every benchmark
+    const boxes = Math.min(14, Math.floor(s.benchmarks / 20));
+    for (let i = 0; i < boxes; i++) {
+      const y = FLOOR + 4 - 2 - i * 2;
+      fx.rect(BENCH_X - 32 + (i % 2), y, 12, 2).fill(hex(i % 3 ? '#8f6d44' : '#a07a4c'));
+      fx.rect(BENCH_X - 32 + (i % 2), y, 12, 1).fill(hex('#b08a5a'));
+      if (i % 4 === 0) fx.rect(BENCH_X - 28 + (i % 2), y, 3, 1).fill(hex(C.markerRed));
+    }
+
+    // street lamp pool, moths, porch light
+    const lamp = { x: POLE_X + 24, y: 100 };
+    glow
+      .poly([lamp.x - 3, lamp.y, lamp.x + 3, lamp.y, lamp.x + 34, 248, lamp.x - 34, 248])
+      .fill({ color: 0xffd38a, alpha: 0.05 });
+    glow.rect(lamp.x - 34, 240, 68, 8).fill({ color: 0xffd38a, alpha: 0.05 });
+    for (let i = 0; i < 3; i++) {
+      const a = time * (3 + i) + i * 2;
+      fx.rect(
+        Math.round(lamp.x + Math.cos(a) * (4 + i * 2)),
+        Math.round(lamp.y + 4 + Math.sin(a * 1.3) * 3),
+        1,
+        1,
+      ).fill(hex(C.beigeLight));
+    }
+    if (lightsOn) {
+      fx.rect(35, 172, 1, 1).fill(hex(C.window));
+      glow.circle(35, 172, 8).fill({ color: 0xffc35a, alpha: 0.08 });
+    }
+
+    // warm spill from the open garage onto the slab and sidewalk
+    if (tubeOn)
+      glow.poly([GX0, SLAB, GX1, SLAB, GX1 + 30, 248, GX0 - 30, 248]).fill({ color: 0xffe2a0, alpha: 0.05 });
+
+    // a bat, now and then
+    const bat = (time % 40) / 40;
+    if (bat < 0.3) {
+      const bx = Math.round(-10 + bat * 1700);
+      const by = Math.round(40 + Math.sin(bat * 60) * 6);
+      const flap = Math.floor(time * 10) % 2;
+      fx.rect(bx, by, 1, 1).fill(hex(C.ink));
+      fx.rect(bx - 2, by - flap, 2, 1).fill(hex(C.ink));
+      fx.rect(bx + 1, by - flap, 2, 1).fill(hex(C.ink));
+    }
 
     // camera flash on launches
     flash.clear();

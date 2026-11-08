@@ -43,16 +43,17 @@ for (let r = 0; r < 3; r++)
   for (let c = 0; c < 2; c++) CUBE_SLOTS.push({ x: 340 + c * 30, y: 244 - CUBE - r * CUBE });
 
 function paintBackdrop(p: Painter) {
-  // roof + trusses
+  // roof + Warren trusses
   p.rect(0, 0, W, 44, M.roof);
+  for (let x = 0; x < W; x += 3) p.rect(x, 2, 1, 8, '#171a24');
   p.rect(0, 12, W, 2, M.truss);
-  p.rect(0, 40, W, 2, M.truss);
+  p.rect(0, 38, W, 3, M.truss);
+  p.rect(0, 40, W, 1, M.trussDark);
   for (let x = 0; x < W; x += 24) {
-    for (let k = 0; k < 26; k++) {
-      p.px(x + k, 14 + Math.floor((k * 26) / 26), M.trussDark);
-      p.px(x + k, 14 + Math.floor(k), M.trussDark);
+    for (let k = 0; k <= 24; k++) {
+      p.px(x + k / 2, 14 + k, M.truss); // down-slope diagonal
+      p.px(x + 12 + k / 2, 38 - k, M.truss); // up-slope diagonal
     }
-    p.rect(x, 12, 2, 30, M.truss);
   }
   // clerestory windows showing the night sky
   for (let x = 30; x < W - 30; x += 46) {
@@ -97,6 +98,36 @@ function paintBackdrop(p: Painter) {
   // dock bumpers
   p.rect(14, FLOOR - 4, 6, 4, C.ink);
   p.rect(72, FLOOR - 4, 6, 4, C.ink);
+
+  // the box truck backed into the dock (right half of the opening; the substation yard is on the left)
+  p.rect(46, 132, 38, 44, '#8e8a80');
+  p.rect(46, 132, 38, 2, '#a9a597');
+  p.rect(46, 174, 38, 2, '#625f57');
+  for (let x = 50; x < 82; x += 8) p.rect(x, 136, 1, 36, '#7c786f');
+  p.rect(48, 148, 34, 14, '#2d4f8a');
+  p.text(50, 150, 'ASI', '#d8d2c2');
+  p.text(50, 156, 'FREIGHT', '#d8d2c2');
+  p.rect(44, 176, 42, 4, C.ink);
+  p.rect(48, 172, 3, 3, C.ledRed);
+  p.rect(79, 172, 3, 3, C.ledRed);
+
+  // steel columns with caution tape
+  for (const cx of [94, 316, 392]) {
+    p.rect(cx, 58, 6, FLOOR - 58, M.trussDark);
+    p.rect(cx, 58, 1, FLOOR - 58, M.truss);
+    for (let y = FLOOR - 16; y < FLOOR; y += 4) {
+      p.rect(cx, y, 6, 2, M.safety);
+      p.rect(cx, y + 2, 6, 2, C.ink);
+    }
+  }
+
+  // wall signage
+  p.rect(104, 118, 40, 12, M.safety);
+  p.rect(105, 119, 38, 10, C.ink);
+  p.text(107, 121, 'NO FOOD', M.safety);
+  p.rect(338, 80, 44, 16, '#e9e3d2');
+  p.text(340, 82, 'AUTHORIZED', C.markerRed);
+  p.text(340, 89, 'PERSONNEL', C.ink);
 
   // mezzanine office (right)
   p.rect(398, 112, 82, 4, M.truss);
@@ -247,11 +278,11 @@ export function createWarehouse(root: Container, getLab: () => string): SceneMod
     // substation transformers in the yard, one per power level
     const yard = Math.min(4, s.fuseLevel + 1);
     for (let i = 0; i < yard; i++) {
-      const x = 12 + i * 18;
-      fx.rect(x, 160, 12, 18).fill(hex(C.metalDark));
-      fx.rect(x, 160, 12, 2).fill(hex(C.metal));
-      for (let k = 0; k < 3; k++) fx.rect(x + 2 + k * 4, 156, 1, 4).fill(hex(C.metalLight));
-      if (hot && rand(i + Math.floor(time * 9)) > 0.7) fx.rect(x + 5, 154, 2, 2).fill(hex(C.spark));
+      const x = 9 + i * 9;
+      fx.rect(x, 162, 8, 16).fill(hex(C.metalDark));
+      fx.rect(x, 162, 8, 2).fill(hex(C.metal));
+      for (let k = 0; k < 2; k++) fx.rect(x + 2 + k * 4, 158, 1, 4).fill(hex(C.metalLight));
+      if (hot && rand(i + Math.floor(time * 9)) > 0.7) fx.rect(x + 3, 156, 2, 2).fill(hex(C.spark));
     }
 
     // cabinet status panels and drop cables
@@ -293,6 +324,30 @@ export function createWarehouse(root: Container, getLab: () => string): SceneMod
       const px = 414 + Math.floor((Math.sin(time * 0.5) + 1) * 12);
       fx.rect(px, 92, 4, 12).fill(hex(C.houseDark));
       fx.rect(px + 1, 89, 3, 3).fill(hex(C.houseDark));
+    }
+
+    // polished floor: lamps and LEDs reflect as soft streaks
+    for (let i = 0; i < 6; i++) {
+      const x = 50 + i * 76;
+      if (!flicker || i % 2 === 0) glow.rect(x - 3, 222, 6, 30).fill({ color: 0xffe9b0, alpha: 0.035 });
+    }
+    cubes.forEach(
+      (sp) =>
+        sp.visible && glow.rect(sp.x + 4, 246, CUBE - 8, 12).fill({ color: hex(C.ledRed), alpha: 0.05 }),
+    );
+
+    // exhaust fans high on the wall
+    for (const fxX of [210, 270]) {
+      fx.circle(fxX, 112, 9).fill(hex(M.trussDark));
+      fx.circle(fxX, 112, 8).fill(hex(C.ink));
+      const a = time * 9;
+      for (let b = 0; b < 3; b++) {
+        const ang = a + (b * Math.PI * 2) / 3;
+        fx.rect(Math.round(fxX + Math.cos(ang) * 4) - 1, Math.round(112 + Math.sin(ang) * 4) - 1, 3, 3).fill(
+          hex(M.duct),
+        );
+      }
+      fx.rect(fxX - 1, 111, 2, 2).fill(hex(M.duct));
     }
 
     // forklift ferrying crates across the front
