@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import Decimal from 'break_eternity.js';
-import { BUILDINGS, CLICK_UPGRADES, ECONOMY, ERAS, MODELS, OFFLINE, RESEARCH, RIVALS, SAFETY } from '../data/economy.ts';
+import {
+  BUILDINGS,
+  CLICK_UPGRADES,
+  ECONOMY,
+  ERAS,
+  MODELS,
+  OFFLINE,
+  RESEARCH,
+  RIVALS,
+  SAFETY,
+} from '../data/economy.ts';
 import { decode, encode } from '../save/codec.ts';
 import {
   apply,
@@ -247,7 +257,12 @@ describe('save codec', () => {
     const out = decode(encode(s, 42));
     expect(out?.savedAt).toBe(42);
     expect(out?.state.cash.toString()).toBe(s.cash.toString());
-    expect(out?.state).toMatchObject({ owned: s.owned, fuseLevel: 2, clickUpgrades: 2, roundsClosedAt: [12] });
+    expect(out?.state).toMatchObject({
+      owned: s.owned,
+      fuseLevel: 2,
+      clickUpgrades: 2,
+      roundsClosedAt: [12],
+    });
   });
 
   it('rejects garbage', () => {

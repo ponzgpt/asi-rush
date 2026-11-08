@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'preact/hooks';
-import { MILESTONES, MODELS, RIVALS } from '../data/economy.ts';
+import { ERAS, MODELS, RIVALS } from '../data/economy.ts';
 import { audioPrefs, setAudioPrefs, unlockAudio } from '../audio/audio.ts';
 import { pDoom, playerRank } from '../sim/sim.ts';
+import { dispatch, displayLab, retryEra, saveEraStartNow } from '../state/store.ts';
 import {
   exportSave,
   game,
@@ -15,7 +16,7 @@ import {
   startLoop,
 } from '../state/store.ts';
 import { fmt, fmtClock, fmtInt, fmtPct } from './format.ts';
-import { lang, setLang, t, type Key } from './i18n.ts';
+import { lang, setLang, t, tk, type Key } from './i18n.ts';
 
 const GAME_URL = 'https://ponzgpt.github.io/asi-rush/';
 
@@ -67,6 +68,7 @@ export function Boot(p: { onDone: () => void }) {
     unlockAudio();
     startLoop();
     if (!returning || name !== labName.value) setLabName(name);
+    if (!returning) saveEraStartNow();
     p.onDone();
   };
 
@@ -91,7 +93,9 @@ export function Boot(p: { onDone: () => void }) {
               ASI<span>RUSH</span>
             </h1>
             <div class="tag">
-              {returning ? `${t('era')} · ${labName.value || t('labNameDefault')}` : t('briefingTag')}
+              {returning
+                ? `${tk(`era.${game.value.era}`)} · ${labName.value || t('labNameDefault')}`
+                : t('briefingTag')}
             </div>
             {returning ? (
               <>
@@ -112,7 +116,7 @@ export function Boot(p: { onDone: () => void }) {
                     </li>
                   ))}
                 </ol>
-                <p class="goal-line">{t('briefingGoal', { n: fmtInt(MILESTONES.eraGoalCap) })}</p>
+                <p class="goal-line">{t('briefingGoal')}</p>
                 <form
                   class="lab-form"
                   onSubmit={(e) => {
@@ -173,6 +177,8 @@ export function Help(p: { onClose: () => void }) {
           </li>
         ))}
       </ol>
+      <h2>{t('helpWin')}</h2>
+      <p>{t('helpWinBody')}</p>
       <h2>{t('helpGlossary')}</h2>
       <ul class="glossary">
         {(['g.flops', 'g.split', 'g.scaling', 'g.power', 'g.models', 'g.pdoom', 'g.offline'] as Key[]).map(
@@ -254,15 +260,65 @@ function Toggle(p: { on: boolean; onChange: (v: boolean) => void }) {
   );
 }
 
+// --- round closed --------------------------------------------------------
+
+export function RoundClosed() {
+  const s = game.value;
+  const next = s.era + 1;
+  return (
+    <Modal onClose={() => undefined} label={tk(`roundTitle.${s.era}`)}>
+      <div class="victory">
+        <div class="modal-tag tone-ok">{t('roundTag')}</div>
+        <h2 class="victory-title">{tk(`roundTitle.${s.era}`)}</h2>
+        <p>{tk(`roundLead.${s.era}`, { n: fmtInt(ERAS[s.era]?.goal ?? 0) })}</p>
+        <p class="era-next">{tk(`roundNext.${next}`)}</p>
+        <div class="row-buttons">
+          <button class="key key-primary key-big" onClick={() => dispatch({ type: 'advanceEra' })}>
+            {t('moveOn', { era: tk(`era.${next}`) })}
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+// --- defeat --------------------------------------------------------------
+
+export function Defeat() {
+  const s = game.value;
+  const doom = s.outcome === 'doom';
+  const lab = tk(`rival.${s.lostTo ?? ''}`);
+  return (
+    <Modal onClose={() => undefined} label={doom ? t('doomTitle') : t('lostTag')}>
+      <div class="victory defeat">
+        <div class="modal-tag">{doom ? t('doomTag') : t('lostTag')}</div>
+        <h2 class="victory-title">
+          {doom ? t('doomTitle') : t('lostTitle', { lab, round: tk(`round.${s.era}`) })}
+        </h2>
+        <p>{doom ? t('doomLead') : t('lostLead')}</p>
+        <p class="dim small">{t('lostHint')}</p>
+        <div class="row-buttons">
+          <button class="key key-primary" onClick={() => retryEra()}>
+            {t('retryEra')}
+          </button>
+          <button class="key" onClick={() => confirm(t('resetConfirm')) && resetGame()}>
+            {t('newGame')}
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 // --- victory -------------------------------------------------------------
 
 export function Victory(p: { onClose: () => void }) {
   const s = game.value;
   const [copied, setCopied] = useState(false);
-  const time = fmtClock(s.eraCompleteAt ?? s.time);
+  const time = fmtClock(s.roundsClosedAt[s.roundsClosedAt.length - 1] ?? s.time);
   const rank = playerRank(s);
   const pd = fmtPct(pDoom(s));
-  const text = t('shareText', { t: time, rank, p: pd });
+  const text = t('shareText', { t: time, p: pd });
   const share = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(GAME_URL)}`;
   const stats: [Key, string][] = [
     ['statTime', time],
@@ -277,7 +333,8 @@ export function Victory(p: { onClose: () => void }) {
       <div class="victory">
         <div class="modal-tag tone-ok">{t('victoryTag')}</div>
         <h2 class="victory-title">{t('victoryTitle')}</h2>
-        <p>{rank === 1 ? t('victoryLead') : t('victoryLeadLate')}</p>
+        <p>{t('victoryLead', { lab: displayLab() })}</p>
+        <p class="dim small">{t('victoryDoom', { p: pd })}</p>
         <dl class="victory-stats">
           {stats.map(([k, v]) => (
             <div key={k}>
@@ -302,7 +359,6 @@ export function Victory(p: { onClose: () => void }) {
             {t('keepPlaying')}
           </button>
         </div>
-        <p class="dim small">{t('era2Soon')}</p>
       </div>
     </Modal>
   );

@@ -2,16 +2,18 @@ import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { NEWS } from '../data/news.ts';
 import { audioPrefs, setAudioPrefs } from '../audio/audio.ts';
 import { mountScene } from '../scene/scene.ts';
-import { playerRank } from '../sim/sim.ts';
+import { isFinalEra, playerRank } from '../sim/sim.ts';
 import { dispatch, displayLab, game, headlines, labName } from '../state/store.ts';
 import { fmtClock } from './format.ts';
+import { OBJECTIVES, currentObjective } from './objectives.ts';
 import { lang, t } from './i18n.ts';
-import { Boot, Help, Settings, Victory } from './overlays.tsx';
+import { Boot, Defeat, Help, RoundClosed, Settings, Victory } from './overlays.tsx';
 import { Coach } from './coach.tsx';
 import {
   Actions,
   Allocation,
   BenchmarkButton,
+  ClickUpgrade,
   GoalBar,
   LabLog,
   Leaderboard,
@@ -86,7 +88,7 @@ function Header(p: { onHelp: () => void; onSettings: () => void }) {
           ASI<span>RUSH</span>
         </span>
         <span class="era">
-          {t('era')} · <b>{displayLab()}</b>
+          <b>{displayLab()}</b>
         </span>
       </div>
       <GoalBar />
@@ -136,7 +138,11 @@ export function App() {
   const [booted, setBooted] = useState(false);
   const [modal, setModal] = useState<'help' | 'settings' | null>(null);
   const [victorySeen, setVictorySeen] = useState(readSeen);
-  const won = game.value.eraCompleteAt !== null;
+  const s = game.value;
+  const won = s.outcome === 'won';
+  const lost = s.outcome === 'lost' || s.outcome === 'doom';
+  const roundModal = s.roundClosed && !isFinalEra(s) && !s.outcome;
+  const tutorial = currentObjective(s) < OBJECTIVES.length;
 
   // Space runs a benchmark (desktop shortcut)
   useEffect(() => {
@@ -164,33 +170,38 @@ export function App() {
     <>
       <div class="app">
         <Header onHelp={() => setModal('help')} onSettings={() => setModal('settings')} />
+        <Newswire />
         <main class="layout">
+          <aside class="rail rail-left">
+            <Leaderboard />
+            <LabLog />
+            <Stats />
+          </aside>
           <section class="stage">
             <div class="scene-frame">
               <Scene />
-            </div>
-            <ObjectiveCard />
-            <div class="deck">
-              <BenchmarkButton />
-              <Allocation />
+              {tutorial && <ObjectiveCard />}
             </div>
           </section>
-          <aside class="rail rail-left">
-            <Stats />
-            <Leaderboard />
-            <LabLog />
-          </aside>
           <aside class="rail rail-right">
-            <Actions />
+            <div class="actions">
+              <Actions />
+            </div>
+            <div class="deck">
+              <BenchmarkButton />
+              <ClickUpgrade />
+              <Allocation />
+            </div>
           </aside>
         </main>
-        <Newswire />
       </div>
-      {booted && <Coach paused={modal !== null || (won && !victorySeen)} />}
+      {booted && <Coach paused={modal !== null || (won && !victorySeen) || lost || roundModal} />}
       {!booted && <Boot onDone={() => setBooted(true)} />}
       {booted && modal === 'help' && <Help onClose={() => setModal(null)} />}
       {booted && modal === 'settings' && <Settings onClose={() => setModal(null)} />}
       {booted && won && !victorySeen && <Victory onClose={closeVictory} />}
+      {booted && roundModal && <RoundClosed />}
+      {booted && lost && <Defeat />}
     </>
   );
 }

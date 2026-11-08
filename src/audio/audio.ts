@@ -172,6 +172,21 @@ const SFX: Record<GameEvent, (now: number) => void> = {
       tone(midi(n), now + 1.26 + i * 0.08, 0.5, { type: 'triangle', gain: 0.12 }),
     );
   },
+  click: (now) =>
+    [76, 83, 88].forEach((n, i) => tone(midi(n), now + i * 0.05, 0.12, { type: 'square', gain: 0.08 })),
+  rival: (now) => {
+    tone(midi(52), now, 0.25, { type: 'sawtooth', gain: 0.05 });
+    tone(midi(59), now + 0.08, 0.3, { type: 'sawtooth', gain: 0.04 });
+  },
+  round: (now) => SFX.victory(now),
+  era: (now) =>
+    [57, 64, 69, 76, 81].forEach((n, i) =>
+      tone(midi(n), now + i * 0.12, 0.6, { type: 'triangle', gain: 0.12 }),
+    ),
+  defeat: (now) => {
+    [64, 60, 57, 52].forEach((n, i) => tone(midi(n), now + i * 0.3, 0.5, { type: 'sawtooth', gain: 0.07 }));
+    burst(now + 1.1, 0.8, 0.2, 400);
+  },
   ui: (now) => tone(midi(84), now, 0.03, { gain: 0.05 }),
 };
 

@@ -1,11 +1,24 @@
-import { useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import Decimal from 'break_eternity.js';
-import { BUILDINGS, BUILDING_ORDER, ECONOMY, MILESTONES, MODELS, RESEARCH, RIVALS } from '../data/economy.ts';
 import {
+  BUILDINGS,
+  BUILDING_ORDER,
+  CLICK_UPGRADES,
+  ERAS,
+  MODELS,
+  RESEARCH,
+  RIVALS,
+} from '../data/economy.ts';
+import {
+  buildingUnlocked,
   bulkCost,
   canShip,
+  clickValue,
+  eraOf,
   fuseCost,
+  leader,
   maxAffordable,
+  nextClickUpgrade,
   nextModel,
   pDoom,
   playerRank,
@@ -14,7 +27,9 @@ import {
   rates,
   researchAvailable,
   rivalCap,
+  rivalEta,
   throttle,
+  trust,
   type BuyCount,
   type State,
 } from '../sim/sim.ts';
@@ -26,11 +41,14 @@ import { OBJECTIVES, currentObjective } from './objectives.ts';
 
 // --- small pieces --------------------------------------------------------
 
-export function Bar(p: { value: number; tone: string; label?: string }) {
+export function Bar(p: { value: number; tone: string; label?: string; marker?: number }) {
   const v = Math.max(0, Math.min(1, p.value));
   return (
     <div class="bar" role="progressbar" aria-valuenow={Math.round(v * 100)} aria-label={p.label}>
       <div class="bar-fill" style={{ width: `${v * 100}%`, background: `var(--${p.tone})` }} />
+      {p.marker !== undefined && (
+        <i class="bar-marker" style={{ left: `${Math.max(0, Math.min(1, p.marker)) * 100}%` }} />
+      )}
     </div>
   );
 }
@@ -55,9 +73,14 @@ function Chip(p: { tone: string; children: preact.ComponentChildren }) {
   return <span class={`chip tone-${p.tone}`}>{p.children}</span>;
 }
 
-function Section(p: { title: string; children: preact.ComponentChildren; extra?: preact.ComponentChildren }) {
+function Section(p: {
+  title: string;
+  children: preact.ComponentChildren;
+  extra?: preact.ComponentChildren;
+  class?: string;
+}) {
   return (
-    <section class="window">
+    <section class={`window ${p.class ?? ''}`}>
       <div class="window-title">
         <span>{p.title}</span>
         {p.extra}
@@ -67,20 +90,37 @@ function Section(p: { title: string; children: preact.ComponentChildren; extra?:
   );
 }
 
-// --- header goal ---------------------------------------------------------
+// --- header: funding round + countdown -----------------------------------
 
 export function GoalBar() {
   const s = game.value;
+  const era = eraOf(s);
   const cap = s.capability.toNumber();
+  const round = tk(`round.${s.era}`);
+  const top = leader(s.time);
+  const rival = s.roundClosed || s.outcome ? null : rivalEta(s.time, era.goal);
+  const mine = capEta(era.goal, s);
+  const losing = rival !== null && rival < 600 && (mine === null || rival < mine);
+  const lab = tk(`rival.${top.rival.id}`);
   return (
-    <div class="goal" data-coach="goal" title={t('goalHint', { n: fmtInt(MILESTONES.eraGoalCap) })}>
+    <div class="goal" data-coach="goal" title={t('roundHint', { n: fmtInt(era.goal), round })}>
       <div class="goal-row">
-        <span class="goal-label">{t('goal')}</span>
+        <span class="goal-label">
+          {tk(`era.${s.era}`)} · <b>{round}</b>
+        </span>
         <span class="goal-num">
-          {fmt(cap)} <span class="dim">/ {fmtInt(MILESTONES.eraGoalCap)}</span>
+          {fmt(cap)} <span class="dim">/ {era.goal < 1e6 ? fmtInt(era.goal) : fmt(era.goal)}</span>
         </span>
       </div>
-      <Bar value={cap / MILESTONES.eraGoalCap} tone="cap" label={t('goal')} />
+      <Bar value={cap / era.goal} tone="cap" label={round} marker={top.cap / era.goal} />
+      {rival !== null && (
+        <div class={`countdown${losing ? ' losing' : ''}`}>
+          <span>{rival === 0 ? t('deadlineNow', { lab }) : t('deadline', { lab, t: fmtClock(rival) })}</span>
+          <span class="dim">
+            {mine === null ? t('youStalled') : mine < 36_000 ? t('youEta', { t: fmtClock(mine) }) : ''}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -129,7 +169,16 @@ export function Stats() {
         value={fmt(s.capability)}
         sub={`+${fmt(r.capPerSec, 2)}${t('perSec')}`}
       />
-      <Stat tone="doom" label={t('pdoom')} tip={t('pdoomTip')} value={fmtPct(pd)} meter={pd} />
+      <Stat
+        tone="doom"
+        coach="pdoom"
+        label={t('pdoom')}
+        tip={t('pdoomTip')}
+        value={fmtPct(pd)}
+        meter={pd}
+        sub={t('trust', { n: trust(s).toFixed(2) })}
+        warn={pd > 0.5}
+      />
     </section>
   );
 }
@@ -143,9 +192,10 @@ function Stat(p: {
   sub?: string;
   warn?: boolean;
   meter?: number;
+  coach?: string;
 }) {
   return (
-    <div class={`stat tone-${p.tone}${p.warn ? ' warn' : ''}`} title={p.tip}>
+    <div class={`stat tone-${p.tone}${p.warn ? ' warn' : ''}`} title={p.tip} data-coach={p.coach}>
       <div class="stat-label">
         <i class="dot" />
         {p.label}
@@ -160,7 +210,7 @@ function Stat(p: {
   );
 }
 
-// --- objective -----------------------------------------------------------
+// --- tutorial objective (shown only while the tutorial runs) ---------------
 
 export function ObjectiveCard() {
   const s = game.value;
@@ -175,34 +225,65 @@ export function ObjectiveCard() {
           {i + 1}/{OBJECTIVES.length}
         </span>
       </div>
-      <p>{t(o.key, { n: fmtInt(MILESTONES.eraGoalCap) })}</p>
+      <p>{t(o.key, { n: fmtInt(ERAS[0]?.goal ?? 0) })}</p>
       {o.progress && <Bar value={o.progress(s)} tone="ok" />}
     </div>
   );
 }
 
-// --- deck: benchmark + allocation ----------------------------------------
+// --- deck: benchmark + click upgrades + allocation ------------------------
 
 export function BenchmarkButton() {
-  const [pops, setPops] = useState<{ id: number; x: number; y: number }[]>([]);
+  const s = game.value;
+  const value = clickValue(s);
+  const [pops, setPops] = useState<{ id: number; x: number; y: number; v: string }[]>([]);
   const click = (e: MouseEvent) => {
+    const v = fmt(clickValue(game.peek()));
     dispatch({ type: 'benchmark' });
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const id = performance.now();
     const x = e.clientX ? e.clientX - rect.left : rect.width / 2;
     const y = e.clientY ? e.clientY - rect.top : rect.height / 2;
-    setPops((p) => [...p.slice(-8), { id, x, y }]);
+    setPops((p) => [...p.slice(-8), { id, x, y, v }]);
     setTimeout(() => setPops((p) => p.filter((q) => q.id !== id)), 800);
   };
   return (
     <button class="key key-big bench" data-coach="benchmark" onClick={click}>
       <span class="key-title">{t('benchmark')}</span>
-      <span class="key-sub">{t('benchmarkSub', { n: ECONOMY.benchmarkCash })}</span>
+      <span class="key-sub">{t('benchmarkSub', { n: fmt(value) })}</span>
       {pops.map((p) => (
         <span key={p.id} class="pop" style={{ left: `${p.x}px`, top: `${p.y}px` }}>
-          +${ECONOMY.benchmarkCash}
+          +${p.v}
         </span>
       ))}
+    </button>
+  );
+}
+
+export function ClickUpgrade() {
+  const s = game.value;
+  const u = nextClickUpgrade(s);
+  if (!u) return <div class="clickup done dim small">{t('clickDone')}</div>;
+  const ok = s.cash.gte(u.cost);
+  return (
+    <button
+      class="clickup"
+      data-coach="clickup"
+      disabled={!ok}
+      onClick={() => dispatch({ type: 'clickUpgrade' })}
+    >
+      <span class="clickup-name">
+        {t('clickUpgrade')}: <b>{tk(`c.${u.id}`)}</b>
+      </span>
+      <span class="clickup-eff">
+        {u.mult ? t('clickMult', { n: u.mult }) : t('clickPct', { n: Math.round((u.revenuePct ?? 0) * 100) })}
+      </span>
+      <span class="clickup-cost">{ok ? `$${fmt(u.cost)}` : (eta(new Decimal(u.cost), s) ?? '')}</span>
+      <span class="clickup-pips">
+        {CLICK_UPGRADES.map((c, i) => (
+          <i key={c.id} class={i < s.clickUpgrades ? 'on' : ''} />
+        ))}
+      </span>
     </button>
   );
 }
@@ -293,7 +374,9 @@ function Release() {
   const s = game.value;
   const ic = icons();
   const i = s.modelsShipped;
-  const next = MODELS[i];
+  const next = nextModel(s);
+  const eraModels = MODELS.filter((m) => m.era === s.era).length;
+  const shippedInEra = MODELS.slice(0, i).filter((m) => m.era === s.era).length;
   if (!next) {
     return (
       <Section title={t('secRelease')}>
@@ -304,7 +387,7 @@ function Release() {
   const ready = canShip(s);
   const secs = capEta(next.cap, s);
   return (
-    <Section title={t('secRelease')} extra={<span class="dim">{`${i}/${MODELS.length}`}</span>}>
+    <Section title={t('secRelease')} extra={<span class="dim">{`${shippedInEra}/${eraModels}`}</span>}>
       <div class={`model-card${ready ? ' ready' : ''}`}>
         <div class="model-head">
           <img src={ic.model} alt="" class="px-icon" />
@@ -347,7 +430,7 @@ function effects(r: (typeof RESEARCH)[number]) {
   if (r.flopsMult) out.push(<Chip tone="compute">{t('effFlops', { n: r.flopsMult })}</Chip>);
   if (r.powerMult)
     out.push(<Chip tone="power">{t('effPower', { n: Math.round((1 - r.powerMult) * 100) })}</Chip>);
-  if (r.alignment) out.push(<Chip tone="ok">{t('effAlign', { n: r.alignment })}</Chip>);
+  if (r.alignment) out.push(<Chip tone="ok">{t('effAlign')}</Chip>);
   return out;
 }
 
@@ -355,7 +438,9 @@ function ResearchSection() {
   const s = game.value;
   const ic = icons();
   const open = researchAvailable(s);
-  const next = RESEARCH.find((r) => !s.research.includes(r.id) && s.capability.lt(r.unlockCap));
+  const next = RESEARCH.find(
+    (r) => r.era <= s.era && !s.research.includes(r.id) && s.capability.lt(r.unlockCap),
+  );
   const done = RESEARCH.filter((r) => s.research.includes(r.id));
   const nextSecs = next ? capEta(next.unlockCap, s) : null;
   return (
@@ -373,9 +458,11 @@ function ResearchSection() {
             action={t('publish')}
             ok={s.cash.gte(r.cost)}
             eta={eta(new Decimal(r.cost), s)}
+            safety={r.alignment !== undefined}
             onBuy={() => dispatch({ type: 'research', id: r.id })}
           />
         ))}
+        {open.length === 0 && !next && <p class="empty">{t('researchNone')}</p>}
         {next && (
           <p class="next">
             {t('researchNext', { n: fmt(next.unlockCap) })}
@@ -404,9 +491,15 @@ function HardwareSection() {
   const s = game.value;
   const [mode, setMode] = useState<BuyCount>(1);
   const ic = icons();
-  const visible = BUILDING_ORDER.filter((id) => s.owned[id] > 0 || s.cashEarned.gte(BUILDINGS[id].revealAt));
-  const nextLocked = BUILDING_ORDER.find((id) => !visible.includes(id));
-  const fuse = fuseCost(s.fuseLevel);
+  // current era first: the newest, biggest machines are what matter now
+  const visible = BUILDING_ORDER.filter(
+    (id) =>
+      buildingUnlocked(id, s) &&
+      (s.owned[id] > 0 || s.era > BUILDINGS[id].era || s.cashEarned.gte(BUILDINGS[id].revealAt)),
+  ).reverse();
+  const nextLocked = BUILDING_ORDER.find((id) => buildingUnlocked(id, s) && !visible.includes(id));
+  const nextEra = BUILDING_ORDER.find((id) => !buildingUnlocked(id, s));
+  const fuse = fuseCost(s);
   const showFuse = s.fuseLevel > 0 || powerDemandMW(s) > powerCapMW(s) * 0.6;
   return (
     <Section
@@ -426,16 +519,25 @@ function HardwareSection() {
           <Item
             coach="fuse"
             icon={ic.fuse}
-            title={t('fuse')}
+            title={tk(`power.${s.era}`)}
             count={s.fuseLevel}
-            desc={t('fuse.d')}
-            chips={[<Chip tone="power">{t('fuseEffect', { n: s.fuseLevel + 1 })}</Chip>]}
+            desc={tk(`power.${s.era}.d`)}
+            chips={[<Chip tone="power">{t('powerEffect', { n: s.fuseLevel + 1 })}</Chip>]}
             price={`$${fmt(fuse)}`}
             ok={s.cash.gte(fuse)}
             eta={eta(fuse, s)}
             hot={throttle(s) < 1}
             onBuy={() => dispatch({ type: 'buyFuse' })}
           />
+        )}
+        {nextLocked && (
+          <div class="item locked">
+            <div class="item-icon">?</div>
+            <div class="item-main">
+              <div class="item-title">{t('locked')}</div>
+              <div class="item-desc">{t('lockedHint')}</div>
+            </div>
+          </div>
         )}
         {visible.map((id) => {
           const b = BUILDINGS[id];
@@ -462,12 +564,12 @@ function HardwareSection() {
             />
           );
         })}
-        {nextLocked && (
+        {nextEra && (
           <div class="item locked">
             <div class="item-icon">?</div>
             <div class="item-main">
               <div class="item-title">{t('locked')}</div>
-              <div class="item-desc">{t('lockedHint')}</div>
+              <div class="item-desc">{t('lockedEra', { era: tk(`era.${BUILDINGS[nextEra].era}`) })}</div>
             </div>
           </div>
         )}
@@ -489,10 +591,11 @@ function Item(p: {
   ok: boolean;
   eta: string | null;
   hot?: boolean;
+  safety?: boolean;
   onBuy: () => void;
 }) {
   return (
-    <div class={`item${p.hot ? ' hot' : ''}`}>
+    <div class={`item${p.hot ? ' hot' : ''}${p.safety ? ' safety' : ''}`}>
       <div class="item-icon">{p.icon && <img src={p.icon} alt="" class="px-icon" />}</div>
       <div class="item-main">
         <div class="item-title">
@@ -512,11 +615,12 @@ function Item(p: {
 
 // --- leaderboard ---------------------------------------------------------
 
-const ROW_H = 54;
+const ROW_H = 46;
 
 export function Leaderboard() {
   const s = game.value;
   const me = s.capability.toNumber();
+  const goal = eraOf(s).goal;
   const rows = [
     { id: 'you', name: displayLab(), desc: t('you'), cap: me, me: true },
     ...RIVALS.map((r) => ({
@@ -528,28 +632,51 @@ export function Leaderboard() {
     })),
   ];
   const order = [...rows].sort((a, b) => b.cap - a.cap).map((r) => r.id);
+
+  // remember when each row last moved up or down, to flash an arrow for a few seconds
+  const prev = useRef<string[]>(order);
+  const moves = useRef<Record<string, { dir: number; at: number }>>({});
+  useEffect(() => {
+    const now = performance.now();
+    order.forEach((id, pos) => {
+      const was = prev.current.indexOf(id);
+      if (was !== -1 && was !== pos) moves.current[id] = { dir: was > pos ? 1 : -1, at: now };
+    });
+    prev.current = order;
+  });
+  const now = performance.now();
+
   return (
-    <Section title={t('leaderboard')} extra={<span class="rank-chip">#{playerRank(s)}</span>}>
-      <p class="intro">{t('lbHint', { n: fmtInt(MILESTONES.eraGoalCap) })}</p>
+    <Section
+      title={t('leaderboard')}
+      extra={<span class="rank-chip">#{playerRank(s)}</span>}
+      class="board-window"
+    >
+      <p class="intro">{t('lbHint')}</p>
       <ol class="board" data-coach="rank" style={{ height: `${rows.length * ROW_H}px` }}>
         {rows.map((r) => {
           const pos = order.indexOf(r.id);
           const gap = r.cap - me;
+          const move = moves.current[r.id];
+          const recent = move && now - move.at < 4000 ? move.dir : 0;
           return (
             <li
               key={r.id}
-              class={r.me ? 'me' : ''}
+              class={`${r.me ? 'me' : ''}${recent > 0 ? ' up' : recent < 0 ? ' down' : ''}`}
               style={{ transform: `translateY(${pos * ROW_H}px)` }}
               title={r.desc}
             >
-              <span class="board-rank">{pos + 1}</span>
+              <span class="board-rank">
+                {pos + 1}
+                {recent !== 0 && <i class="board-move">{recent > 0 ? '▲' : '▼'}</i>}
+              </span>
               <div class="board-main">
                 <div class="board-top">
                   <span class="board-name">{r.name}</span>
                   <span class="board-cap">{fmt(r.cap)}</span>
                 </div>
                 <div class="board-bar">
-                  <Bar value={r.cap / MILESTONES.eraGoalCap} tone={r.me ? 'cap' : 'ink-3'} />
+                  <Bar value={r.cap / goal} tone={r.me ? 'cap' : 'ink-3'} />
                   {!r.me && (
                     <span class={`board-gap ${gap > 0 ? 'tone-doom' : 'tone-ok'}`}>
                       {gap > 0 ? t('gapAhead', { n: fmt(gap) }) : t('gapBehind', { n: fmt(-gap) })}
@@ -569,7 +696,7 @@ export function Leaderboard() {
 
 export function LabLog() {
   return (
-    <Section title={t('log')}>
+    <Section title={t('log')} class="log-window">
       <ul class="log">
         {log.value.length === 0 && <li class="dim">—</li>}
         {log.value.map((l) => (

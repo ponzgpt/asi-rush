@@ -66,7 +66,15 @@ export function newGame(): State {
     capability: new Decimal(0),
     flopsSpentTraining: new Decimal(0),
     cashEarned: new Decimal(0),
-    owned: { homePc: 0, accelCard: 0, serverRack: 0, vectorCabinet: 0, hypercube: 0, waferEngine: 0, dataHall: 0 },
+    owned: {
+      homePc: 0,
+      accelCard: 0,
+      serverRack: 0,
+      vectorCabinet: 0,
+      hypercube: 0,
+      waferEngine: 0,
+      dataHall: 0,
+    },
     era: 0,
     fuseLevel: 0,
     research: [],
@@ -106,13 +114,18 @@ export function buildingCost(id: BuildingId, owned: number): Decimal {
 export function bulkCost(id: BuildingId, owned: number, n: number): Decimal {
   if (n === 1) return buildingCost(id, owned);
   const r = BUILDINGS[id].costGrowth;
-  return buildingCost(id, owned).mul(new Decimal(r).pow(n).sub(1)).div(r - 1);
+  return buildingCost(id, owned)
+    .mul(new Decimal(r).pow(n).sub(1))
+    .div(r - 1);
 }
 
 /** Largest n with bulkCost(n) <= cash. */
 export function maxAffordable(id: BuildingId, owned: number, cash: Decimal): number {
   const r = BUILDINGS[id].costGrowth;
-  const ratio = cash.mul(r - 1).div(buildingCost(id, owned)).add(1);
+  const ratio = cash
+    .mul(r - 1)
+    .div(buildingCost(id, owned))
+    .add(1);
   let n = Math.floor(ratio.log10().toNumber() / Math.log10(r));
   while (n > 0 && bulkCost(id, owned, n).gt(cash)) n--; // float guard
   return Math.max(0, n);
@@ -169,7 +182,9 @@ export function throttle(s: State): number {
 }
 
 export function rawFlops(s: State): number {
-  return BUILDING_ORDER.reduce((sum, id) => sum + s.owned[id] * BUILDINGS[id].flops, 0) * multipliers(s).flops;
+  return (
+    BUILDING_ORDER.reduce((sum, id) => sum + s.owned[id] * BUILDINGS[id].flops, 0) * multipliers(s).flops
+  );
 }
 
 export function effectiveFlops(s: State): number {
@@ -230,13 +245,17 @@ export function clickValue(s: State): Decimal {
     mult *= u.mult ?? 1;
     pct += u.revenuePct ?? 0;
   }
-  return rates(s).cashPerSec.mul(pct).add(ECONOMY.benchmarkCash * mult);
+  return rates(s)
+    .cashPerSec.mul(pct)
+    .add(ECONOMY.benchmarkCash * mult);
 }
 
 // --- research, models ----------------------------------------------------
 
 export function researchAvailable(s: State): ResearchDef[] {
-  return RESEARCH.filter((r) => r.era <= s.era && !s.research.includes(r.id) && s.capability.gte(r.unlockCap));
+  return RESEARCH.filter(
+    (r) => r.era <= s.era && !s.research.includes(r.id) && s.capability.gte(r.unlockCap),
+  );
 }
 
 /** Next model in the lineup, if it belongs to an era already reached. */

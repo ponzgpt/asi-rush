@@ -25,13 +25,7 @@ export const POWER_MULT = 2; // each power upgrade doubles the site's cap
 // --- hardware ------------------------------------------------------------
 
 export type BuildingId =
-  | 'homePc'
-  | 'accelCard'
-  | 'serverRack'
-  | 'vectorCabinet'
-  | 'hypercube'
-  | 'waferEngine'
-  | 'dataHall';
+  'homePc' | 'accelCard' | 'serverRack' | 'vectorCabinet' | 'hypercube' | 'waferEngine' | 'dataHall';
 
 export interface BuildingDef {
   id: BuildingId;
@@ -45,7 +39,15 @@ export interface BuildingDef {
 
 export const BUILDINGS: Record<BuildingId, BuildingDef> = {
   homePc: { id: 'homePc', era: 0, baseCost: 10, costGrowth: 1.12, flops: 1, powerMW: 0.002, revealAt: 0 },
-  accelCard: { id: 'accelCard', era: 0, baseCost: 150, costGrowth: 1.12, flops: 12, powerMW: 0.015, revealAt: 60 },
+  accelCard: {
+    id: 'accelCard',
+    era: 0,
+    baseCost: 150,
+    costGrowth: 1.12,
+    flops: 12,
+    powerMW: 0.015,
+    revealAt: 60,
+  },
   serverRack: {
     id: 'serverRack',
     era: 0,
@@ -64,9 +66,33 @@ export const BUILDINGS: Record<BuildingId, BuildingDef> = {
     powerMW: 0.6,
     revealAt: 0,
   },
-  hypercube: { id: 'hypercube', era: 1, baseCost: 1.5e6, costGrowth: 1.12, flops: 80_000, powerMW: 6, revealAt: 0 },
-  waferEngine: { id: 'waferEngine', era: 2, baseCost: 1.5e9, costGrowth: 1.12, flops: 1e7, powerMW: 40, revealAt: 0 },
-  dataHall: { id: 'dataHall', era: 2, baseCost: 4e10, costGrowth: 1.12, flops: 1.5e8, powerMW: 500, revealAt: 0 },
+  hypercube: {
+    id: 'hypercube',
+    era: 1,
+    baseCost: 1.5e6,
+    costGrowth: 1.12,
+    flops: 80_000,
+    powerMW: 6,
+    revealAt: 0,
+  },
+  waferEngine: {
+    id: 'waferEngine',
+    era: 2,
+    baseCost: 1.5e9,
+    costGrowth: 1.12,
+    flops: 1e7,
+    powerMW: 40,
+    revealAt: 0,
+  },
+  dataHall: {
+    id: 'dataHall',
+    era: 2,
+    baseCost: 4e10,
+    costGrowth: 1.12,
+    flops: 1.5e8,
+    powerMW: 500,
+    revealAt: 0,
+  },
 };
 
 export const BUILDING_ORDER: BuildingId[] = [
@@ -104,13 +130,7 @@ export const SAFETY = {
 // --- click upgrades ("Run benchmark" button) ----------------------------
 
 export type ClickUpgradeId =
-  | 'cherryPicked'
-  | 'evalSuite'
-  | 'overfit'
-  | 'contamination'
-  | 'vibes'
-  | 'pressRelease'
-  | 'saturation';
+  'cherryPicked' | 'evalSuite' | 'overfit' | 'contamination' | 'vibes' | 'pressRelease' | 'saturation';
 
 export interface ClickUpgradeDef {
   id: ClickUpgradeId;
@@ -228,11 +248,52 @@ export const MODELS: ModelDef[] = [
 // other. cap(t) = head + 10^REF(speed * releaseTime(t)).
 
 export const RIVAL_REFERENCE: [minute: number, log10Cap: number][] = [
-  [0, 0], [2, 0.71], [4, 1.18], [6, 1.56], [8, 1.8], [10, 2], [12, 2.17], [14, 2.37], [16, 2.52], [18, 2.63],
-  [20, 2.75], [22, 2.87], [24, 2.97], [26, 3.07], [28, 3.24], [30, 3.46], [32, 3.74], [34, 3.96], [36, 4.2],
-  [38, 4.35], [40, 4.47], [42, 4.56], [44, 4.64], [46, 4.71], [48, 4.77], [50, 4.83], [52, 4.9], [54, 4.98],
-  [56, 5.06], [58, 5.19], [60, 5.42], [62, 5.68], [64, 5.89], [66, 6.04], [68, 6.16], [70, 6.26], [72, 6.35],
-  [74, 6.42], [76, 6.48], [78, 6.59], [80, 6.67], [82, 6.74], [84, 6.81], [86, 6.86], [88, 6.91], [90, 6.95],
+  [0, 0],
+  [2, 0.71],
+  [4, 1.18],
+  [6, 1.56],
+  [8, 1.8],
+  [10, 2],
+  [12, 2.17],
+  [14, 2.37],
+  [16, 2.52],
+  [18, 2.63],
+  [20, 2.75],
+  [22, 2.87],
+  [24, 2.97],
+  [26, 3.07],
+  [28, 3.24],
+  [30, 3.46],
+  [32, 3.74],
+  [34, 3.96],
+  [36, 4.2],
+  [38, 4.35],
+  [40, 4.47],
+  [42, 4.56],
+  [44, 4.64],
+  [46, 4.71],
+  [48, 4.77],
+  [50, 4.83],
+  [52, 4.9],
+  [54, 4.98],
+  [56, 5.06],
+  [58, 5.19],
+  [60, 5.42],
+  [62, 5.68],
+  [64, 5.89],
+  [66, 6.04],
+  [68, 6.16],
+  [70, 6.26],
+  [72, 6.35],
+  [74, 6.42],
+  [76, 6.48],
+  [78, 6.59],
+  [80, 6.67],
+  [82, 6.74],
+  [84, 6.81],
+  [86, 6.86],
+  [88, 6.91],
+  [90, 6.95],
   [92, 6.99],
 ];
 export const RIVAL_REFERENCE_SLOPE = 0.025; // log10 per minute beyond the last point

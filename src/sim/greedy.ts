@@ -83,7 +83,8 @@ export function runGreedy(opts: GreedyOptions = DEFAULT_GREEDY): {
     // keep clicking while clicking adds at least a quarter on top of idle income
     while (clickClock >= clickEvery) {
       clickClock -= clickEvery;
-      if (clickValue(s).mul(opts.clicksPerSec).gte(rates(s).cashPerSec.mul(0.25))) s = apply(s, { type: 'benchmark' });
+      if (clickValue(s).mul(opts.clicksPerSec).gte(rates(s).cashPerSec.mul(0.25)))
+        s = apply(s, { type: 'benchmark' });
     }
     if (s.roundClosed) s = apply(s, { type: 'advanceEra' });
     while (canShip(s)) s = apply(s, { type: 'ship' });

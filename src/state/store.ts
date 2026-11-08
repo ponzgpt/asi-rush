@@ -1,12 +1,13 @@
 // Signal store wrapping the pure sim: fixed 10 Hz ticks, event narration, persistence.
 import { signal } from '@preact/signals';
-import { BUILDING_ORDER, MODELS, RIVALS, SAVE, TICK_SECONDS } from '../data/economy.ts';
+import { BUILDING_ORDER, CLICK_UPGRADES, MODELS, RIVALS, SAVE, TICK_SECONDS } from '../data/economy.ts';
 import { decode, encode } from '../save/codec.ts';
 import {
   apply,
   newGame,
   powerCapMW,
   rivalCap,
+  rivalReleases,
   simulateOffline,
   throttle,
   tick,
@@ -72,10 +73,22 @@ export function modelPrefix(): string {
   return initials.slice(0, 3) || 'GI';
 }
 
+const MODEL_SUFFIX = ['1', '2', '3', '4', '4 Turbo', '5', '6', '7', '7o', '8', '9', 'X', 'Omega'];
+
 export function modelName(index: number): string {
-  const id = MODELS[index]?.id ?? '';
-  const n = id.replace(/^grg/, '');
-  return `${modelPrefix()}-${n === '4turbo' ? '4 Turbo' : n}`;
+  return `${modelPrefix()}-${MODEL_SUFFIX[index] ?? String(index + 1)}`;
+}
+
+// Rival model names, one parody per lab.
+const RIVAL_MODEL: Record<string, (n: number) => string> = {
+  closedai: (n) => `GPP-${n}`,
+  misanthropic: (n) => `Clod ${n}`,
+  yai: (n) => `Grump ${n}`,
+  shallowmind: (n) => `Gemenot ${n}`,
+};
+
+export function rivalModelName(id: string, n: number): string {
+  return RIVAL_MODEL[id]?.(n) ?? `${id} ${n}`;
 }
 
 let logId = 0;
@@ -134,9 +147,38 @@ function narrate(prev: State, next: State) {
     pushLog(t('ev.overtaken', { lab: tk(`rival.${id}`), n: rank }), 'warn');
     emit('overtaken');
   }
-  if (prev.eraCompleteAt === null && next.eraCompleteAt !== null) {
-    pushLog(t('ev.victory'), 'good');
-    emit('victory');
+  if (next.clickUpgrades > prev.clickUpgrades) {
+    const id = CLICK_UPGRADES[next.clickUpgrades - 1]?.id ?? '';
+    pushLog(t('ev.click', { name: tk(`c.${id}`) }), 'good');
+    emit('click');
+  }
+  // rival releases: every step on their curve is a launch
+  for (const r of RIVALS) {
+    const before = rivalReleases(r, prev.time);
+    const after = rivalReleases(r, next.time);
+    if (after > before && prev.time > 0) {
+      const model = rivalModelName(r.id, after + 1);
+      pushHeadline(tk(`news.rival.${r.id}`, { model }));
+      pushLog(t('ev.rival', { lab: tk(`rival.${r.id}`), model }), 'info');
+      emit('rival');
+    }
+  }
+  if (!prev.roundClosed && next.roundClosed) {
+    pushLog(tk(`ev.round.${next.era}`), 'good');
+    pushHeadline(tk(`news.round.${next.era}`, { lab: displayLab() }));
+    emit(next.outcome === 'won' ? 'victory' : 'round');
+  }
+  if (next.era > prev.era) {
+    pushLog(tk(`ev.era.${next.era}`), 'good');
+    emit('era');
+    saveEraStart(next);
+  }
+  if (!prev.outcome && (next.outcome === 'lost' || next.outcome === 'doom')) {
+    pushLog(
+      next.outcome === 'doom' ? t('ev.doom') : t('ev.lost', { lab: tk(`rival.${next.lostTo ?? ''}`) }),
+      'warn',
+    );
+    emit('defeat');
   }
 }
 
@@ -159,6 +201,38 @@ export function dispatch(action: Action): boolean {
   if (action.type === 'benchmark') emit('benchmark');
   if (action.type === 'buy') emit('buy');
   return true;
+}
+
+// --- era snapshots: a lost round can be replayed from its start ------------
+
+const ERA_KEY = 'asi-rush-era-start';
+
+/** Remember the current state as the start of this era (new game or era change). */
+export function saveEraStartNow() {
+  saveEraStart(game.value);
+}
+
+function saveEraStart(s: State) {
+  try {
+    localStorage.setItem(ERA_KEY, encode(s, Date.now()));
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+/** Restart the current era from the moment it began (no offline catch-up). */
+export function retryEra(): boolean {
+  try {
+    const snap = decode(localStorage.getItem(ERA_KEY) ?? '');
+    const state = snap?.state ?? newGame();
+    game.value = state;
+    log.value = [];
+    headlines.value = [];
+    save();
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 // --- persistence ---------------------------------------------------------
@@ -200,6 +274,7 @@ export function resetGame() {
   game.value = newGame();
   log.value = [];
   headlines.value = [];
+  saveEraStart(game.value);
   save();
 }
 

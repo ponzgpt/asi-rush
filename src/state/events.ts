@@ -7,9 +7,14 @@ export type GameEvent =
   | 'throttle'
   | 'research'
   | 'ship'
+  | 'click'
   | 'overtake'
   | 'overtaken'
+  | 'rival'
+  | 'round'
+  | 'era'
   | 'victory'
+  | 'defeat'
   | 'ui';
 
 type Listener = (e: GameEvent) => void;

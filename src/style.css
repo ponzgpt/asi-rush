@@ -89,21 +89,22 @@ textarea {
 }
 
 /* ---------- layout ---------- */
-/* Desktop: a fixed "command deck" that fills the viewport. Rails scroll inside; the page never does. */
+/* Desktop: a fixed command deck that fills the viewport. Rails scroll inside; the page never does.
+   Left: leaderboard, log, resources. Centre: the lab. Right: release, research, hardware, then the deck. */
 
 .app {
   height: 100vh;
   height: 100dvh;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto minmax(0, 1fr);
-  padding: 10px 16px 46px;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  padding: 8px 16px 12px;
   gap: 10px;
 }
 
 .layout {
   display: grid;
-  grid-template-columns: clamp(250px, 20vw, 340px) minmax(0, 1fr) clamp(330px, 26vw, 460px);
+  grid-template-columns: clamp(260px, 21vw, 350px) minmax(0, 1fr) clamp(340px, 27vw, 470px);
   grid-template-areas: 'left stage right';
   gap: var(--gap);
   min-height: 0;
@@ -113,7 +114,6 @@ textarea {
   grid-area: stage;
   display: flex;
   flex-direction: column;
-  gap: 10px;
   min-width: 0;
   min-height: 0;
 }
@@ -123,29 +123,57 @@ textarea {
   gap: var(--gap);
   min-width: 0;
   min-height: 0;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--line-2) transparent;
-  padding-right: 2px;
 }
 .rail > * {
   flex-shrink: 0;
 }
 .rail-left {
   grid-area: left;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-2) transparent;
+}
+.rail-left .log-window {
+  flex: 1 1 120px;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+}
+.rail-left .log-window .window-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+.rail-left .log-window ul.log {
+  max-height: none;
 }
 .rail-right {
   grid-area: right;
 }
+.actions {
+  flex: 1 1 auto !important;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-2) transparent;
+  padding-right: 2px;
+}
+.actions > * {
+  flex-shrink: 0;
+}
 
 .deck {
-  display: grid;
-  grid-template-columns: minmax(170px, 0.32fr) minmax(0, 1fr);
-  gap: 10px;
-  align-items: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line-2);
 }
 .deck .bench {
-  height: 100%;
+  padding: 10px 14px;
 }
 
 /* ---------- header ---------- */
@@ -296,6 +324,8 @@ textarea {
   position: relative;
   flex: 1 1 auto;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
   border-radius: 10px;
   padding: 10px;
   background: linear-gradient(#2a2340, #1a1528);
@@ -470,6 +500,15 @@ textarea {
 
 /* ---------- objective ---------- */
 
+.scene-frame .objective {
+  position: absolute;
+  left: 22px;
+  top: 22px;
+  width: min(360px, calc(100% - 44px));
+  z-index: 2;
+  backdrop-filter: blur(4px);
+  background: #0b0912cc;
+}
 .objective {
   border: 1px solid #7dffb055;
   background: linear-gradient(90deg, #7dffb014, transparent);
@@ -643,6 +682,9 @@ textarea {
   }
   .objective p {
     margin: 2px 0 4px;
+  }
+  .board-window .intro {
+    display: none;
   }
 }
 .alloc-foot {
@@ -925,7 +967,7 @@ input[type='range']::-moz-range-thumb {
   left: 0;
   right: 0;
   top: 0;
-  height: 48px;
+  height: 41px;
   display: grid;
   grid-template-columns: 26px 1fr;
   gap: 8px;
@@ -1015,17 +1057,13 @@ ul.log {
 /* ---------- newswire ---------- */
 
 .newswire {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 36px;
+  height: 34px;
   display: flex;
   align-items: center;
-  background: #07060cf0;
-  border-top: 1px solid var(--line-2);
-  backdrop-filter: blur(6px);
-  z-index: 5;
+  background: #07060c;
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius);
+  overflow: hidden;
 }
 .newswire-label {
   flex: none;
@@ -1293,6 +1331,138 @@ textarea {
   outline-offset: 2px;
 }
 
+/* ---------- round countdown, click upgrades, misc ---------- */
+
+.bar {
+  position: relative;
+}
+.bar-marker {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  background: var(--doom);
+  box-shadow: 0 0 6px var(--doom);
+  transform: translateX(-1px);
+}
+.goal-label b {
+  color: var(--ink);
+  font-weight: 400;
+}
+.countdown {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--ink-2);
+}
+.countdown.losing span:first-child {
+  color: var(--doom);
+  animation: blink 1s steps(2) infinite;
+}
+
+.clickup {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 10px;
+  align-items: center;
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px dashed var(--line-2);
+  border-radius: var(--radius);
+  background: var(--bg-2);
+  text-align: left;
+  cursor: pointer;
+  font-size: 12px;
+}
+.clickup:hover:not(:disabled) {
+  border-color: var(--cash);
+}
+.clickup:disabled {
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+.clickup-name b {
+  color: var(--cash);
+  font-weight: 600;
+}
+.clickup-eff {
+  grid-column: 1;
+  color: var(--ink-3);
+}
+.clickup-cost {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  font-family: var(--font-crt);
+  font-size: 20px;
+  color: var(--cash);
+}
+.clickup-pips {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 3px;
+}
+.clickup-pips i {
+  flex: 1;
+  height: 3px;
+  background: var(--line);
+}
+.clickup-pips i.on {
+  background: var(--cash);
+}
+.clickup.done {
+  border: 0;
+  background: none;
+  text-align: center;
+  cursor: default;
+}
+
+.item.safety {
+  border-color: #7dffb055;
+  background: linear-gradient(90deg, #7dffb00f, var(--bg-2));
+}
+
+.board li.up {
+  animation: flash-up 1s ease-out 2;
+}
+.board li.down {
+  animation: flash-down 1s ease-out 2;
+}
+@keyframes flash-up {
+  0% {
+    box-shadow: 0 0 0 2px var(--ok);
+  }
+}
+@keyframes flash-down {
+  0% {
+    box-shadow: 0 0 0 2px var(--doom);
+  }
+}
+.board-move {
+  font-style: normal;
+  font-size: 10px;
+  margin-left: 2px;
+}
+li.up .board-move {
+  color: var(--ok);
+}
+li.down .board-move {
+  color: var(--doom);
+}
+
+.era-next {
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius);
+  padding: 10px;
+  color: var(--ink) !important;
+  background: var(--bg-2);
+}
+.defeat .victory-title {
+  color: var(--doom) !important;
+  text-shadow: 0 0 18px #ff5a5288;
+}
+
 /* ---------- coach marks ---------- */
 
 .coach-ring {
@@ -1363,14 +1533,14 @@ textarea {
 
 /* ---------- responsive ---------- */
 
-/* Medium: stage on top spanning both columns, rails below; the page scrolls. */
+/* Medium and short screens: two columns, the page scrolls. */
 @media (max-width: 1180px), (max-height: 640px) {
   .app {
     height: auto;
     min-height: 100vh;
   }
   .layout {
-    grid-template-columns: minmax(0, 1fr) clamp(300px, 34vw, 380px);
+    grid-template-columns: minmax(0, 1fr) clamp(300px, 36vw, 400px);
     grid-template-areas:
       'stage right'
       'left right';
@@ -1383,14 +1553,17 @@ textarea {
     height: auto;
     aspect-ratio: 16 / 9;
   }
-  .rail {
+  .actions {
     overflow: visible;
+  }
+  .rail-left .log-window .window-body {
+    max-height: 240px;
   }
 }
 
 @media (max-width: 820px) {
   .app {
-    padding: 8px 12px 56px;
+    padding: 8px 12px 24px;
   }
   .layout {
     display: flex;
@@ -1422,30 +1595,35 @@ textarea {
   .scene-frame {
     padding: 6px;
   }
-  .deck {
-    grid-template-columns: minmax(0, 1fr);
+  .scene-frame .objective {
+    position: static;
+    width: auto;
+    margin-top: 6px;
   }
-  /* mobile order: scene, deck, stats, actions, leaderboard, log */
+  /* phone order: scene, deck, actions, leaderboard, resources, log */
   .stage,
-  .rail {
+  .rail,
+  .actions {
     display: contents;
   }
   .scene-frame {
     order: 1;
   }
-  .objective {
-    order: 2;
-  }
   .deck {
+    order: 2;
+    border-top: 0;
+    padding-top: 0;
+  }
+  .actions > * {
     order: 3;
   }
-  .stats {
+  .board-window {
     order: 4;
   }
-  .rail-right > * {
+  .stats {
     order: 5;
   }
-  .rail-left > .window {
+  .log-window {
     order: 6;
   }
   .stat {
