@@ -3,20 +3,29 @@ import Decimal from 'break_eternity.js';
 import {
   BUILDINGS,
   BUILDING_ORDER,
+  CLICK_UPGRADES,
   ECONOMY,
+  ERAS,
   MILESTONES,
   MODELS,
   OFFLINE,
-  POWER,
+  POWER_MULT,
   RESEARCH,
   RIVALS,
+  RIVAL_REFERENCE,
+  RIVAL_REFERENCE_SLOPE,
+  SAFETY,
   TICK_SECONDS,
   type BuildingId,
+  type ClickUpgradeDef,
+  type EraDef,
   type ModelDef,
   type ResearchDef,
   type ResearchId,
   type RivalDef,
 } from '../data/economy.ts';
+
+export type Outcome = 'won' | 'lost' | 'doom';
 
 export interface State {
   cash: Decimal;
@@ -24,14 +33,19 @@ export interface State {
   flopsSpentTraining: Decimal; // lifetime, for stats
   cashEarned: Decimal; // lifetime, for stats
   owned: Record<BuildingId, number>;
-  fuseLevel: number;
+  era: number; // index into ERAS
+  fuseLevel: number; // power upgrades bought at the current site
   research: ResearchId[];
   modelsShipped: number;
+  clickUpgrades: number; // CLICK_UPGRADES bought, in order
   trainShare: number; // 0..1 of compute sent to training
   benchmarks: number;
   time: number; // simulated seconds since new game
   firstTrainingAt: number | null;
-  eraCompleteAt: number | null;
+  roundClosed: boolean; // current era's goal reached first; waiting for the player to move on
+  roundsClosedAt: number[]; // time each round closed
+  outcome: Outcome | null; // the run is over once set
+  lostTo: RivalDef['id'] | null;
 }
 
 export type BuyCount = number | 'max';
@@ -42,6 +56,8 @@ export type Action =
   | { type: 'buyFuse' }
   | { type: 'research'; id: ResearchId }
   | { type: 'ship' }
+  | { type: 'clickUpgrade' }
+  | { type: 'advanceEra' }
   | { type: 'setTrainShare'; share: number };
 
 export function newGame(): State {
@@ -50,19 +66,36 @@ export function newGame(): State {
     capability: new Decimal(0),
     flopsSpentTraining: new Decimal(0),
     cashEarned: new Decimal(0),
-    owned: { homePc: 0, accelCard: 0, serverRack: 0 },
+    owned: { homePc: 0, accelCard: 0, serverRack: 0, vectorCabinet: 0, hypercube: 0, waferEngine: 0, dataHall: 0 },
+    era: 0,
     fuseLevel: 0,
     research: [],
     modelsShipped: 0,
+    clickUpgrades: 0,
     trainShare: ECONOMY.defaultTrainShare,
     benchmarks: 0,
     time: 0,
     firstTrainingAt: null,
-    eraCompleteAt: null,
+    roundClosed: false,
+    roundsClosedAt: [],
+    outcome: null,
+    lostTo: null,
   };
 }
 
+export function eraOf(s: State): EraDef {
+  return ERAS[s.era] ?? (ERAS[0] as EraDef);
+}
+
+export function isFinalEra(s: State): boolean {
+  return s.era >= ERAS.length - 1;
+}
+
 // --- costs ---------------------------------------------------------------
+
+export function buildingUnlocked(id: BuildingId, s: State): boolean {
+  return BUILDINGS[id].era <= s.era;
+}
 
 export function buildingCost(id: BuildingId, owned: number): Decimal {
   const b = BUILDINGS[id];
@@ -73,25 +106,25 @@ export function buildingCost(id: BuildingId, owned: number): Decimal {
 export function bulkCost(id: BuildingId, owned: number, n: number): Decimal {
   if (n === 1) return buildingCost(id, owned);
   const r = BUILDINGS[id].costGrowth;
-  return buildingCost(id, owned)
-    .mul(new Decimal(r).pow(n).sub(1))
-    .div(r - 1);
+  return buildingCost(id, owned).mul(new Decimal(r).pow(n).sub(1)).div(r - 1);
 }
 
 /** Largest n with bulkCost(n) <= cash. */
 export function maxAffordable(id: BuildingId, owned: number, cash: Decimal): number {
   const r = BUILDINGS[id].costGrowth;
-  const ratio = cash
-    .mul(r - 1)
-    .div(buildingCost(id, owned))
-    .add(1);
+  const ratio = cash.mul(r - 1).div(buildingCost(id, owned)).add(1);
   let n = Math.floor(ratio.log10().toNumber() / Math.log10(r));
   while (n > 0 && bulkCost(id, owned, n).gt(cash)) n--; // float guard
   return Math.max(0, n);
 }
 
-export function fuseCost(level: number): Decimal {
-  return new Decimal(POWER.fuseCostGrowth).pow(level).mul(POWER.fuseBaseCost);
+export function fuseCost(s: State): Decimal {
+  const e = eraOf(s);
+  return new Decimal(e.powerCostGrowth).pow(s.fuseLevel).mul(e.powerBaseCost);
+}
+
+export function nextClickUpgrade(s: State): ClickUpgradeDef | undefined {
+  return CLICK_UPGRADES[s.clickUpgrades];
 }
 
 // --- multipliers ---------------------------------------------------------
@@ -121,7 +154,7 @@ export function multipliers(s: State): Multipliers {
 // --- power and compute ---------------------------------------------------
 
 export function powerCapMW(s: State): number {
-  return POWER.baseCapMW * POWER.fuseCapMult ** s.fuseLevel;
+  return eraOf(s).baseCapMW * POWER_MULT ** s.fuseLevel;
 }
 
 export function powerDemandMW(s: State): number {
@@ -136,14 +169,32 @@ export function throttle(s: State): number {
 }
 
 export function rawFlops(s: State): number {
-  return (
-    BUILDING_ORDER.reduce((sum, id) => sum + s.owned[id] * BUILDINGS[id].flops, 0) * multipliers(s).flops
-  );
+  return BUILDING_ORDER.reduce((sum, id) => sum + s.owned[id] * BUILDINGS[id].flops, 0) * multipliers(s).flops;
 }
 
 export function effectiveFlops(s: State): number {
   return rawFlops(s) * throttle(s);
 }
+
+// --- risk ----------------------------------------------------------------
+
+/** Capability at which P(doom) is 50%. Each alignment paper multiplies it. */
+export function safeCap(s: State): number {
+  return SAFETY.baseSafeCap * SAFETY.perAlignment ** multipliers(s).alignment;
+}
+
+export function pDoom(s: State): number {
+  const x = s.capability.toNumber() / safeCap(s);
+  const k = x ** SAFETY.exponent;
+  return k / (1 + k);
+}
+
+/** Share of revenue kept after the public-trust penalty. */
+export function trust(s: State): number {
+  return 1 - SAFETY.revenuePenalty * pDoom(s);
+}
+
+// --- rates ---------------------------------------------------------------
 
 export interface Rates {
   flops: number;
@@ -166,29 +217,32 @@ export function rates(s: State): Rates {
     flops,
     trainFlops,
     inferenceFlops,
-    cashPerSec: new Decimal(inferenceFlops * ECONOMY.cashPerFlop * m.cash),
+    cashPerSec: new Decimal(inferenceFlops * ECONOMY.cashPerFlop * m.cash * trust(s)),
     capPerSec,
   };
 }
 
-// --- risk, research, models, rivals --------------------------------------
-
-export function risk(s: State): Decimal {
-  return s.capability.pow(ECONOMY.riskExponent).div(1 + multipliers(s).alignment);
+/** Cash per benchmark click: base x click multipliers, plus a share of revenue/s. */
+export function clickValue(s: State): Decimal {
+  let mult = 1;
+  let pct = 0;
+  for (const u of CLICK_UPGRADES.slice(0, s.clickUpgrades)) {
+    mult *= u.mult ?? 1;
+    pct += u.revenuePct ?? 0;
+  }
+  return rates(s).cashPerSec.mul(pct).add(ECONOMY.benchmarkCash * mult);
 }
 
-/** Risk mapped to 0..1 for display: risk / (risk + pDoomHalf). */
-export function pDoom(s: State): number {
-  const r = risk(s).toNumber();
-  return r / (r + ECONOMY.pDoomHalf);
-}
+// --- research, models ----------------------------------------------------
 
 export function researchAvailable(s: State): ResearchDef[] {
-  return RESEARCH.filter((r) => !s.research.includes(r.id) && s.capability.gte(r.unlockCap));
+  return RESEARCH.filter((r) => r.era <= s.era && !s.research.includes(r.id) && s.capability.gte(r.unlockCap));
 }
 
+/** Next model in the lineup, if it belongs to an era already reached. */
 export function nextModel(s: State): ModelDef | undefined {
-  return MODELS[s.modelsShipped];
+  const m = MODELS[s.modelsShipped];
+  return m && m.era <= s.era ? m : undefined;
 }
 
 export function canShip(s: State): boolean {
@@ -196,8 +250,50 @@ export function canShip(s: State): boolean {
   return m !== undefined && s.capability.gte(m.cap);
 }
 
+// --- rivals --------------------------------------------------------------
+
+export function rivalReleases(r: RivalDef, time: number): number {
+  return time < r.offset ? 0 : Math.floor((time - r.offset) / r.every) + 1;
+}
+
+/** Reference expert curve: log10 Capability at `minute`, linear between anchors. */
+export function referenceLog10(minute: number): number {
+  const pts = RIVAL_REFERENCE;
+  const last = pts[pts.length - 1] ?? [0, 0];
+  if (minute >= last[0]) return last[1] + (minute - last[0]) * RIVAL_REFERENCE_SLOPE;
+  for (let i = 1; i < pts.length; i++) {
+    const [m1, v1] = pts[i] ?? last;
+    const [m0, v0] = pts[i - 1] ?? last;
+    if (minute <= m1) return v0 + ((v1 - v0) * (minute - m0)) / (m1 - m0);
+  }
+  return last[1];
+}
+
+/** Time on the reference curve a rival has reached: continuous before its first release, then stepped. */
+function rivalClock(r: RivalDef, time: number): number {
+  const n = rivalReleases(r, time);
+  return n === 0 ? time : r.offset + n * r.every;
+}
+
 export function rivalCap(r: RivalDef, time: number): number {
-  return r.start + MILESTONES.eraGoalCap * (time / r.goalSeconds) ** r.exponent;
+  const minute = (rivalClock(r, time) * r.speed) / 60;
+  return r.head + (minute <= 0 ? 0 : 10 ** referenceLog10(minute));
+}
+
+export function leader(time: number): { rival: RivalDef; cap: number } {
+  let best = { rival: RIVALS[0] as RivalDef, cap: -1 };
+  for (const r of RIVALS) {
+    const cap = rivalCap(r, time);
+    if (cap > best.cap) best = { rival: r, cap };
+  }
+  return best;
+}
+
+/** Seconds until the leading rival reaches `goal` (searching up to `horizon` s ahead), or null. */
+export function rivalEta(time: number, goal: number, horizon = 3 * 3600): number | null {
+  if (leader(time).cap >= goal) return 0;
+  for (let dt = 5; dt <= horizon; dt += 5) if (leader(time + dt).cap >= goal) return dt;
+  return null;
 }
 
 /** 1-based leaderboard position of the player among the rival labs. */
@@ -209,15 +305,14 @@ export function playerRank(s: State): number {
 // --- actions and time ----------------------------------------------------
 
 export function apply(s: State, a: Action): State {
+  if (s.outcome && s.outcome !== 'won' && a.type !== 'setTrainShare') return s;
   switch (a.type) {
-    case 'benchmark':
-      return {
-        ...s,
-        cash: s.cash.add(ECONOMY.benchmarkCash),
-        cashEarned: s.cashEarned.add(ECONOMY.benchmarkCash),
-        benchmarks: s.benchmarks + 1,
-      };
+    case 'benchmark': {
+      const v = clickValue(s);
+      return { ...s, cash: s.cash.add(v), cashEarned: s.cashEarned.add(v), benchmarks: s.benchmarks + 1 };
+    }
     case 'buy': {
+      if (!buildingUnlocked(a.building, s)) return s;
       const owned = s.owned[a.building];
       const want = a.count ?? 1;
       const n = want === 'max' ? maxAffordable(a.building, owned, s.cash) : want;
@@ -226,7 +321,7 @@ export function apply(s: State, a: Action): State {
       return { ...s, cash: s.cash.sub(cost), owned: { ...s.owned, [a.building]: owned + n } };
     }
     case 'buyFuse': {
-      const cost = fuseCost(s.fuseLevel);
+      const cost = fuseCost(s);
       if (s.cash.lt(cost)) return s;
       return { ...s, cash: s.cash.sub(cost), fuseLevel: s.fuseLevel + 1 };
     }
@@ -245,6 +340,15 @@ export function apply(s: State, a: Action): State {
         modelsShipped: s.modelsShipped + 1,
       };
     }
+    case 'clickUpgrade': {
+      const u = nextClickUpgrade(s);
+      if (!u || s.cash.lt(u.cost)) return s;
+      return { ...s, cash: s.cash.sub(u.cost), clickUpgrades: s.clickUpgrades + 1 };
+    }
+    case 'advanceEra': {
+      if (!s.roundClosed || isFinalEra(s)) return s;
+      return { ...s, era: s.era + 1, fuseLevel: 0, roundClosed: false };
+    }
     case 'setTrainShare':
       return { ...s, trainShare: Math.min(1, Math.max(0, a.share)) };
   }
@@ -252,11 +356,12 @@ export function apply(s: State, a: Action): State {
 
 /** Advance by dt seconds with rates held constant over the step (exact: rates only change on actions). */
 export function tick(s: State, dt: number = TICK_SECONDS): State {
+  if (s.outcome && s.outcome !== 'won') return s; // a lost run is frozen
   const r = rates(s);
   const time = s.time + dt;
   const capability = s.capability.add(r.capPerSec.mul(dt));
   const earned = r.cashPerSec.mul(dt);
-  return {
+  const next: State = {
     ...s,
     time,
     cash: s.cash.add(earned),
@@ -264,15 +369,28 @@ export function tick(s: State, dt: number = TICK_SECONDS): State {
     capability,
     flopsSpentTraining: s.flopsSpentTraining.add(r.trainFlops * dt),
     firstTrainingAt: s.firstTrainingAt ?? (capability.gte(MILESTONES.firstTrainingCap) ? time : null),
-    eraCompleteAt: s.eraCompleteAt ?? (capability.gte(MILESTONES.eraGoalCap) ? time : null),
   };
+  if (s.outcome === 'won') return next;
+
+  // the player reaching the goal is checked before the rivals: ties go to the player
+  const goal = eraOf(s).goal;
+  if (!s.roundClosed && capability.gte(goal)) {
+    next.roundClosed = true;
+    next.roundsClosedAt = [...s.roundsClosedAt, time];
+    if (isFinalEra(s)) next.outcome = 'won';
+  } else if (!s.roundClosed && leader(time).cap >= goal) {
+    next.outcome = 'lost';
+    next.lostTo = leader(time).rival.id;
+  }
+  if (!next.outcome && pDoom(next) >= SAFETY.doomLimit) next.outcome = 'doom';
+  return next;
 }
 
 /** Catch up after the game was closed: capped at 24 h, simulated in 60 s steps. */
 export function simulateOffline(s: State, elapsedSeconds: number): State {
   let remaining = Math.min(Math.max(0, elapsedSeconds), OFFLINE.maxSeconds);
   let out = s;
-  while (remaining > 0) {
+  while (remaining > 0 && (!out.outcome || out.outcome === 'won')) {
     const dt = Math.min(OFFLINE.stepSeconds, remaining);
     out = tick(out, dt);
     remaining -= dt;

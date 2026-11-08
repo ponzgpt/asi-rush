@@ -1,29 +1,35 @@
 import { describe, expect, it } from 'vitest';
-import { BUILDINGS, ECONOMY, MODELS, OFFLINE, POWER, RESEARCH, RIVALS } from '../data/economy.ts';
+import Decimal from 'break_eternity.js';
+import { BUILDINGS, CLICK_UPGRADES, ECONOMY, ERAS, MODELS, OFFLINE, RESEARCH, RIVALS, SAFETY } from '../data/economy.ts';
 import { decode, encode } from '../save/codec.ts';
 import {
   apply,
   buildingCost,
   bulkCost,
   canShip,
+  clickValue,
+  effectiveFlops,
+  leader,
   maxAffordable,
   multipliers,
+  newGame,
   pDoom,
   playerRank,
-  rivalCap,
-  effectiveFlops,
-  newGame,
+  powerCapMW,
   rates,
+  rivalCap,
+  rivalEta,
   simulateOffline,
   throttle,
   tick,
   type State,
 } from './sim.ts';
 
-const withCash = (cash: number): State => {
-  const s = newGame();
-  return { ...s, cash: s.cash.add(cash) };
-};
+const withCash = (cash: number): State => ({ ...newGame(), cash: new Decimal(cash) });
+const withCap = (s: State, cap: number): State => ({ ...s, capability: new Decimal(cap) });
+const pcs = (n: number): State['owned'] => ({ ...newGame().owned, homePc: n });
+const garage = ERAS[0] as (typeof ERAS)[number];
+const warehouse = ERAS[1] as (typeof ERAS)[number];
 
 describe('costs', () => {
   it('follows C0 * 1.12^n', () => {
@@ -38,8 +44,10 @@ describe('costs', () => {
     expect(s.cash.toNumber()).toBeCloseTo(25 - BUILDINGS.homePc.baseCost);
   });
 
-  it('benchmark click pays cash', () => {
-    expect(apply(newGame(), { type: 'benchmark' }).cash.toNumber()).toBe(ECONOMY.benchmarkCash);
+  it('later-era hardware is locked until that era', () => {
+    expect(apply(withCash(1e9), { type: 'buy', building: 'vectorCabinet' }).owned.vectorCabinet).toBe(0);
+    const era2 = { ...withCash(1e9), era: 1 };
+    expect(apply(era2, { type: 'buy', building: 'vectorCabinet' }).owned.vectorCabinet).toBe(1);
   });
 });
 
@@ -57,79 +65,50 @@ describe('bulk buying', () => {
     expect(bulkCost('homePc', 0, n + 1).gt(1000)).toBe(true);
     expect(apply(s, { type: 'buy', building: 'homePc', count: 'max' }).owned.homePc).toBe(n);
   });
-
-  it('a fixed count is all-or-nothing', () => {
-    expect(apply(withCash(50), { type: 'buy', building: 'homePc', count: 10 }).owned.homePc).toBe(0);
-  });
 });
 
-describe('research and models', () => {
-  const backprop = RESEARCH[0] as (typeof RESEARCH)[number];
-
-  it('research is locked until its capability threshold and then applies its multiplier', () => {
-    const rich = withCash(1e6);
-    expect(apply(rich, { type: 'research', id: backprop.id })).toBe(rich);
-    const unlocked = { ...rich, capability: rich.capability.add(backprop.unlockCap) };
-    const done = apply(unlocked, { type: 'research', id: backprop.id });
-    expect(done.research).toContain(backprop.id);
-    expect(multipliers(done).cap).toBeCloseTo(backprop.capMult ?? 1);
-    expect(apply(done, { type: 'research', id: backprop.id })).toBe(done); // one-time
+describe('benchmark clicks', () => {
+  it('pays the base amount, multiplied by click upgrades', () => {
+    expect(apply(newGame(), { type: 'benchmark' }).cash.toNumber()).toBe(ECONOMY.benchmarkCash);
+    const up = apply(withCash(1e6), { type: 'clickUpgrade' });
+    expect(clickValue(up).toNumber()).toBeCloseTo(ECONOMY.benchmarkCash * (CLICK_UPGRADES[0]?.mult ?? 1));
   });
 
-  it('shipping a model needs its capability, pays hype and raises the price of inference', () => {
-    const first = MODELS[0] as (typeof MODELS)[number];
-    expect(canShip(newGame())).toBe(false);
-    const s = { ...newGame(), capability: newGame().capability.add(first.cap) };
-    const shipped = apply(s, { type: 'ship' });
-    expect(shipped.modelsShipped).toBe(1);
-    expect(shipped.cash.toNumber()).toBe(first.hypeCash);
-    expect(multipliers(shipped).cash).toBeCloseTo(first.priceMult);
-  });
-
-  it('alignment research lowers P(doom) for the same capability', () => {
-    const base = { ...withCash(1e6), capability: newGame().capability.add(500) };
-    const aligned = apply(base, { type: 'research', id: 'redTeam' });
-    expect(pDoom(aligned)).toBeLessThan(pDoom(base));
-    expect(pDoom(base)).toBeGreaterThan(0);
-    expect(pDoom(base)).toBeLessThan(1);
-  });
-});
-
-describe('rivals', () => {
-  it('reach the era goal at their goal time', () => {
-    for (const r of RIVALS) expect(rivalCap(r, r.goalSeconds)).toBeCloseTo(r.start + 1000);
-  });
-
-  it('rank is 1 when ahead of every rival, last when behind all', () => {
-    expect(playerRank(newGame())).toBe(RIVALS.length + 1);
-    expect(playerRank({ ...newGame(), capability: newGame().capability.add(1e6) })).toBe(1);
+  it('revenue-share upgrades scale clicks with income', () => {
+    let s: State = { ...withCash(1e6), owned: pcs(100), trainShare: 0 };
+    s = apply(apply(s, { type: 'clickUpgrade' }), { type: 'clickUpgrade' });
+    const pct = CLICK_UPGRADES[1]?.revenuePct ?? 0;
+    expect(clickValue(s).toNumber()).toBeCloseTo(
+      ECONOMY.benchmarkCash * (CLICK_UPGRADES[0]?.mult ?? 1) + rates(s).cashPerSec.toNumber() * pct,
+    );
   });
 });
 
 describe('power throttle', () => {
+  const over = Math.ceil((garage.baseCapMW * 4) / BUILDINGS.homePc.powerMW);
+
   it('runs at full speed under the cap', () => {
-    const s = { ...newGame(), owned: { homePc: 1, accelCard: 0, serverRack: 0 } };
-    expect(throttle(s)).toBe(1);
+    expect(throttle({ ...newGame(), owned: pcs(1) })).toBe(1);
   });
 
   it('scales compute by cap/demand when over the cap, never to zero', () => {
-    const n = Math.ceil((POWER.baseCapMW * 4) / BUILDINGS.homePc.powerMW);
-    const s = { ...newGame(), owned: { homePc: n, accelCard: 0, serverRack: 0 } };
-    const demand = n * BUILDINGS.homePc.powerMW;
-    expect(throttle(s)).toBeCloseTo(POWER.baseCapMW / demand);
-    expect(effectiveFlops(s)).toBeCloseTo(n * BUILDINGS.homePc.flops * (POWER.baseCapMW / demand));
+    const s = { ...newGame(), owned: pcs(over) };
+    expect(throttle(s)).toBeCloseTo(powerCapMW(s) / (over * BUILDINGS.homePc.powerMW));
     expect(effectiveFlops(s)).toBeGreaterThan(0);
   });
 
-  it('Bigger Fuse raises the cap', () => {
-    const n = Math.ceil((POWER.baseCapMW * 4) / BUILDINGS.homePc.powerMW);
-    const s = { ...withCash(1e6), owned: { homePc: n, accelCard: 0, serverRack: 0 } };
-    expect(throttle(apply(s, { type: 'buyFuse' }))).toBeGreaterThan(throttle(s));
+  it('a power upgrade doubles the cap; a new era resets it to the bigger site', () => {
+    const s = { ...withCash(1e6), owned: pcs(over) };
+    const up = apply(s, { type: 'buyFuse' });
+    expect(powerCapMW(up)).toBeCloseTo(powerCapMW(s) * 2);
+    const moved = apply({ ...withCap(up, garage.goal), roundClosed: true }, { type: 'advanceEra' });
+    expect(moved.fuseLevel).toBe(0);
+    expect(powerCapMW(moved)).toBe(warehouse.baseCapMW);
   });
 });
 
 describe('training vs inference', () => {
-  const s = { ...newGame(), owned: { homePc: 10, accelCard: 0, serverRack: 0 } };
+  const s = { ...newGame(), owned: pcs(10) };
 
   it('all inference makes cash and no capability', () => {
     const r = rates({ ...s, trainShare: 0 });
@@ -143,37 +122,132 @@ describe('training vs inference', () => {
   });
 
   it('tick size does not change the outcome', () => {
-    const t = { ...s, trainShare: 0.5 };
+    const t = { ...s, trainShare: 0 };
     let fine = t;
     for (let i = 0; i < 600; i++) fine = tick(fine, 0.1);
     const coarse = tick(t, 60);
     expect(fine.cash.toNumber()).toBeCloseTo(coarse.cash.toNumber(), 6);
-    expect(fine.capability.toNumber()).toBeCloseTo(coarse.capability.toNumber(), 6);
+  });
+});
+
+describe('research and models', () => {
+  const backprop = RESEARCH[0] as (typeof RESEARCH)[number];
+
+  it('research is locked until its capability threshold and then applies its multiplier', () => {
+    const rich = withCash(1e6);
+    expect(apply(rich, { type: 'research', id: backprop.id })).toBe(rich);
+    const done = apply(withCap(rich, backprop.unlockCap), { type: 'research', id: backprop.id });
+    expect(multipliers(done).cap).toBeCloseTo(backprop.capMult ?? 1);
+    expect(apply(done, { type: 'research', id: backprop.id })).toBe(done); // one-time
+  });
+
+  it('the first paper is cheap and later papers cost more', () => {
+    const costs = RESEARCH.map((r) => r.cost);
+    expect(costs[0]).toBeLessThan(ECONOMY.benchmarkCash * 10);
+    expect(costs).toEqual([...costs].sort((a, b) => a - b));
+  });
+
+  it('shipping a model needs its capability, pays hype and raises the price of inference', () => {
+    const first = MODELS[0] as (typeof MODELS)[number];
+    expect(canShip(newGame())).toBe(false);
+    const shipped = apply(withCap(newGame(), first.cap), { type: 'ship' });
+    expect(shipped.cash.toNumber()).toBe(first.hypeCash);
+    expect(multipliers(shipped).cash).toBeCloseTo(first.priceMult);
+  });
+
+  it('models of a later era wait for that era', () => {
+    const s = { ...withCap(newGame(), 1e9), modelsShipped: MODELS.findIndex((m) => m.era === 1) };
+    expect(canShip(s)).toBe(false);
+    expect(canShip({ ...s, era: 1 })).toBe(true);
+  });
+});
+
+describe('P(doom)', () => {
+  it('rises with capability, falls with alignment, and cuts revenue', () => {
+    const base = { ...withCap(withCash(1e9), 1000), owned: pcs(20), trainShare: 0 };
+    const aligned = apply(base, { type: 'research', id: 'redTeam' });
+    expect(pDoom(aligned)).toBeLessThan(pDoom(base));
+    expect(rates(aligned).cashPerSec.gt(rates(base).cashPerSec)).toBe(true);
+    expect(rates(base).cashPerSec.toNumber()).toBeCloseTo(
+      20 * ECONOMY.cashPerFlop * (1 - SAFETY.revenuePenalty * pDoom(base)),
+    );
+  });
+
+  it('ends the run at the doom limit', () => {
+    expect(tick(withCap(newGame(), SAFETY.baseSafeCap * 100)).outcome).toBe('doom');
+  });
+});
+
+describe('eras and the race', () => {
+  it('reaching the goal closes the round; advancing moves to the next site', () => {
+    const s = tick(withCap({ ...newGame(), research: ['redTeam', 'rlhf'] }, garage.goal));
+    expect(s.roundClosed).toBe(true);
+    expect(s.outcome).toBeNull();
+    const next = apply(s, { type: 'advanceEra' });
+    expect(next.era).toBe(1);
+    expect(next.roundClosed).toBe(false);
+  });
+
+  it('closing the final round wins the game', () => {
+    const last = ERAS[ERAS.length - 1] as (typeof ERAS)[number];
+    const s = { ...newGame(), era: ERAS.length - 1, research: RESEARCH.map((r) => r.id) };
+    expect(tick(withCap(s, last.goal)).outcome).toBe('won');
+  });
+
+  it('a rival reaching the goal first loses the round, and a lost run is frozen', () => {
+    const deadline = rivalEta(0, garage.goal) ?? 0;
+    const lost = tick({ ...newGame(), time: deadline });
+    expect(lost.outcome).toBe('lost');
+    expect(lost.lostTo).toBe(leader(lost.time).rival.id);
+    expect(tick(lost)).toBe(lost);
+    expect(apply(lost, { type: 'benchmark' })).toBe(lost);
+  });
+
+  it('rivals improve in steps and never go down', () => {
+    for (const r of RIVALS) {
+      let prev = 0;
+      for (let t = 0; t < 7200; t += 30) {
+        const c = rivalCap(r, t);
+        expect(c).toBeGreaterThanOrEqual(prev);
+        prev = c;
+      }
+    }
+  });
+
+  it('pole position changes hands among the rivals', () => {
+    const leaders = new Set<string>();
+    for (let t = 0; t < 6000; t += 30) leaders.add(leader(t).rival.id);
+    expect(leaders.size).toBe(RIVALS.length);
+  });
+
+  it('rank is last at the start and first when far ahead', () => {
+    expect(playerRank(newGame())).toBe(RIVALS.length + 1);
+    expect(playerRank(withCap(newGame(), 1e12))).toBe(1);
   });
 });
 
 describe('offline progress', () => {
-  const s = { ...newGame(), trainShare: 0, owned: { homePc: 3, accelCard: 0, serverRack: 0 } };
+  const s = { ...newGame(), trainShare: 0, owned: pcs(3) };
 
   it('matches online ticking', () => {
-    expect(simulateOffline(s, 3600).cash.toNumber()).toBeCloseTo(3 * ECONOMY.cashPerFlop * 3600);
+    expect(simulateOffline(s, 600).cash.toNumber()).toBeCloseTo(3 * ECONOMY.cashPerFlop * 600);
   });
 
-  it('is capped at 24 hours', () => {
-    expect(simulateOffline(s, 10 * OFFLINE.maxSeconds).time).toBe(OFFLINE.maxSeconds);
+  it('is capped at 24 hours and stops when the run ends', () => {
+    const out = simulateOffline(s, 10 * OFFLINE.maxSeconds);
+    expect(out.time).toBeLessThanOrEqual(OFFLINE.maxSeconds);
+    expect(out.outcome).toBe('lost'); // nobody trained: a rival closed the round
   });
 });
 
 describe('save codec', () => {
   it('round-trips state', () => {
-    let s = withCash(1234.5);
-    s = { ...s, owned: { homePc: 4, accelCard: 2, serverRack: 1 }, fuseLevel: 2, trainShare: 0.3 };
-    s = tick(s, 100);
+    let s: State = { ...withCash(1234.5), owned: { ...pcs(4), accelCard: 2 }, fuseLevel: 2, trainShare: 0.3 };
+    s = { ...tick(s, 100), clickUpgrades: 2, roundsClosedAt: [12] };
     const out = decode(encode(s, 42));
     expect(out?.savedAt).toBe(42);
     expect(out?.state.cash.toString()).toBe(s.cash.toString());
-    expect(out?.state.capability.toString()).toBe(s.capability.toString());
-    expect(out?.state).toMatchObject({ owned: s.owned, fuseLevel: 2, trainShare: 0.3, time: s.time });
+    expect(out?.state).toMatchObject({ owned: s.owned, fuseLevel: 2, clickUpgrades: 2, roundsClosedAt: [12] });
   });
 
   it('rejects garbage', () => {

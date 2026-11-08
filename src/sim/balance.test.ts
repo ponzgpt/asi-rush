@@ -1,19 +1,30 @@
-// Guards the M0 balance targets (docs/BALANCE.md). Failing here means a constant change broke pacing.
+// Guards the pacing targets (docs/BALANCE.md). Failing here means a constant change broke pacing.
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_GREEDY, runGreedy } from './greedy.ts';
 
-describe('Era 1 pacing (greedy player)', () => {
-  const { milestones } = runGreedy(DEFAULT_GREEDY);
+describe('pacing', () => {
+  const expert = runGreedy(DEFAULT_GREEDY);
 
-  it('first purchase under 10 s', () => expect(milestones.firstPurchase).toBeLessThan(10));
-  it('first training under 3 min', () => expect(milestones.firstTraining).toBeLessThan(180));
-  it('Era 1 goal in 20-40 min', () => {
-    expect(milestones.eraComplete).toBeGreaterThan(20 * 60);
-    expect(milestones.eraComplete).toBeLessThan(40 * 60);
+  it('first purchase under 10 s and first training under 3 min', () => {
+    expect(expert.milestones.firstPurchase).toBeLessThan(10);
+    expect(expert.milestones.firstTraining).toBeLessThan(180);
   });
 
-  it('a slower, mostly-inference player still finishes within 40 min', () => {
-    const slow = runGreedy({ ...DEFAULT_GREEDY, clicksPerSec: 2, trainShare: 0.2 });
-    expect(slow.milestones.eraComplete).toBeLessThan(40 * 60);
+  it('Series A in 20-40 min', () => {
+    expect(expert.milestones.seriesA).toBeGreaterThan(20 * 60);
+    expect(expert.milestones.seriesA).toBeLessThan(40 * 60);
+  });
+
+  it('an expert reaches ASI first, in under two hours', () => {
+    expect(expert.final.outcome).toBe('won');
+    expect(expert.milestones.asi).toBeLessThan(2 * 3600);
+  });
+
+  it('a typical player (3 clicks/s, 40% training) also wins', () => {
+    expect(runGreedy({ ...DEFAULT_GREEDY, clicksPerSec: 3, trainShare: 0.4 }).final.outcome).toBe('won');
+  });
+
+  it('a passive player (1 click/s, 20% training) loses a round: the race is real', () => {
+    expect(runGreedy({ ...DEFAULT_GREEDY, clicksPerSec: 1, trainShare: 0.2 }).final.outcome).toBe('lost');
   });
 });
