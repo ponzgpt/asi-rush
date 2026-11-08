@@ -35,8 +35,14 @@ Vite + TypeScript (strict) · PixiJS v8 (scene) · Preact + @preact/signals (DOM
 - **Models** (5 releases): ship when Capability allows; each raises price per token and pays launch hype.
 - **Rivals** (4 fictional labs) on a display-only leaderboard: `cap(t) = start + 1000 · (t/goal)^exp`.
 - **Risk:** `Risk = Cap^1.5 / (1 + alignment)`, shown as `P(doom) = risk / (risk + 5000)`.
-- **Onboarding:** BIOS boot, briefing with the loop in four steps, lab naming, 9 guided objectives, help/glossary.
-- **Feedback:** per-event SFX, music layers that build with Capability, scene reacts (screens, LEDs, sparks,
+- **Layout:** full-viewport command deck on desktop (resources + live leaderboard + log | scene + benchmark +
+  allocation | release, research, hardware), two columns on tablets, one on phones. No tabs: every action is visible.
+- **Onboarding:** BIOS boot, briefing with the loop in four steps, lab naming, 9 guided objectives with coach marks
+  (a ring and bubble on the control each objective needs; skippable), help/glossary.
+- **Allocation:** each side shows its rate and what it buys; presets (make money / balanced / get smarter) and the ETA
+  to the next model release.
+- **Leaderboard:** always visible, rows slide when labs overtake each other, gap to every rival.
+- **Feedback:** per-event SFX, a six-section synth score (~90 s per pass, 4 seeded melody variants) whose layers build with Capability, scene reacts (screens, LEDs, sparks,
   neighbours' lights dim on overload, whiteboard plots your scaling curve), lab log, newswire with event headlines.
 - **Goal:** Capability ≥ 1000 → "Series A closed" with stats and a share-to-X card.
 
@@ -44,6 +50,7 @@ Vite + TypeScript (strict) · PixiJS v8 (scene) · Preact + @preact/signals (DOM
 
 - **M0** Era 1 playable prototype, save/load, offline, deployed. ✅
 - **M0.5** Overhaul: art, audio, onboarding, research, models, rivals, share card. ✅
+- **M0.6** Full-screen layout, tutorial coach marks, live leaderboard, allocation clarity, long-form music. ✅
 - **M1** Simulator + balance: richer strategies, timeline CSV, pacing curves, tuning across Eras 1–2.
 - **M2** Vertical slice with art and audio (Eras 1–2): bitmap fonts, CRT filter, sprites, synth score.
 - **M3** Rivals (4 fictional labs) + "Pivot" prestige.

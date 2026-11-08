@@ -277,7 +277,7 @@ export function Victory(p: { onClose: () => void }) {
       <div class="victory">
         <div class="modal-tag tone-ok">{t('victoryTag')}</div>
         <h2 class="victory-title">{t('victoryTitle')}</h2>
-        <p>{t('victoryLead')}</p>
+        <p>{rank === 1 ? t('victoryLead') : t('victoryLeadLate')}</p>
         <dl class="victory-stats">
           {stats.map(([k, v]) => (
             <div key={k}>

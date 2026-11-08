@@ -7,7 +7,17 @@ import { dispatch, displayLab, game, headlines, labName } from '../state/store.t
 import { fmtClock } from './format.ts';
 import { lang, t } from './i18n.ts';
 import { Boot, Help, Settings, Victory } from './overlays.tsx';
-import { Allocation, BenchmarkButton, GoalBar, LabLog, ObjectiveCard, Shop, Stats } from './panels.tsx';
+import { Coach } from './coach.tsx';
+import {
+  Actions,
+  Allocation,
+  BenchmarkButton,
+  GoalBar,
+  LabLog,
+  Leaderboard,
+  ObjectiveCard,
+  Stats,
+} from './panels.tsx';
 
 const VICTORY_KEY = 'asi-rush-victory-seen';
 
@@ -52,9 +62,15 @@ function IconButton(p: {
   onClick: () => void;
   children: preact.ComponentChildren;
   off?: boolean;
+  class?: string;
 }) {
   return (
-    <button class={`icon-btn${p.off ? ' off' : ''}`} aria-label={p.label} title={p.label} onClick={p.onClick}>
+    <button
+      class={`icon-btn${p.off ? ' off' : ''} ${p.class ?? ''}`}
+      aria-label={p.label}
+      title={p.label}
+      onClick={p.onClick}
+    >
       {p.children}
     </button>
   );
@@ -89,6 +105,9 @@ function Header(p: { onHelp: () => void; onSettings: () => void }) {
         <IconButton label={t('sound')} off={!prefs.sfx} onClick={() => setAudioPrefs({ sfx: !prefs.sfx })}>
           ◖
         </IconButton>
+        <IconButton label={t('fullscreen')} class="fs-btn" onClick={toggleFullscreen}>
+          ⛶
+        </IconButton>
         <IconButton label={t('help')} onClick={p.onHelp}>
           ?
         </IconButton>
@@ -98,6 +117,11 @@ function Header(p: { onHelp: () => void; onSettings: () => void }) {
       </div>
     </header>
   );
+}
+
+function toggleFullscreen() {
+  if (document.fullscreenElement) void document.exitFullscreen();
+  else void document.documentElement.requestFullscreen?.().catch(() => undefined);
 }
 
 function readSeen(): boolean {
@@ -141,22 +165,28 @@ export function App() {
       <div class="app">
         <Header onHelp={() => setModal('help')} onSettings={() => setModal('settings')} />
         <main class="layout">
-          <div class="col-main">
+          <section class="stage">
             <div class="scene-frame">
               <Scene />
             </div>
-            <Stats />
-            <LabLog />
-          </div>
-          <aside class="col-side">
             <ObjectiveCard />
-            <BenchmarkButton />
-            <Allocation />
-            <Shop />
+            <div class="deck">
+              <BenchmarkButton />
+              <Allocation />
+            </div>
+          </section>
+          <aside class="rail rail-left">
+            <Stats />
+            <Leaderboard />
+            <LabLog />
+          </aside>
+          <aside class="rail rail-right">
+            <Actions />
           </aside>
         </main>
         <Newswire />
       </div>
+      {booted && <Coach paused={modal !== null || (won && !victorySeen)} />}
       {!booted && <Boot onDone={() => setBooted(true)} />}
       {booted && modal === 'help' && <Help onClose={() => setModal(null)} />}
       {booted && modal === 'settings' && <Settings onClose={() => setModal(null)} />}

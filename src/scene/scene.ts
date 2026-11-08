@@ -244,11 +244,11 @@ export async function mountScene(host: HTMLElement, getState: () => State, getLa
   host.appendChild(canvas);
 
   const fit = () => {
-    // Fill the frame width; integer steps only when there is room for 3x or more.
-    const ratio = host.clientWidth / W;
+    // Fill the frame (both axes); integer steps only when there is room for 3x or more.
+    const ratio = Math.min(host.clientWidth / W, host.clientHeight / H);
     const scale = ratio >= 3 ? Math.floor(ratio) : ratio;
-    canvas.style.width = `${W * scale}px`;
-    canvas.style.height = `${H * scale}px`;
+    canvas.style.width = `${Math.floor(W * scale)}px`;
+    canvas.style.height = `${Math.floor(H * scale)}px`;
     host.style.setProperty('--px', `${Math.max(1, scale)}px`);
   };
   new ResizeObserver(fit).observe(host);

@@ -6,6 +6,7 @@ import {
   canShip,
   fuseCost,
   maxAffordable,
+  nextModel,
   pDoom,
   playerRank,
   powerCapMW,
@@ -34,6 +35,7 @@ export function Bar(p: { value: number; tone: string; label?: string }) {
   );
 }
 
+/** "in 1m 20s" until cash covers cost, or null when affordable. */
 function eta(cost: Decimal, s: State): string | null {
   if (s.cash.gte(cost)) return null;
   const perSec = rates(s).cashPerSec;
@@ -41,8 +43,28 @@ function eta(cost: Decimal, s: State): string | null {
   return t('eta', { t: fmtDuration(cost.sub(s.cash).div(perSec).toNumber()) });
 }
 
+/** Seconds of training until Capability reaches target (0 if already there), null when training is stopped. */
+function capEta(target: number, s: State): number | null {
+  const gap = target - s.capability.toNumber();
+  if (gap <= 0) return 0;
+  const perSec = rates(s).capPerSec.toNumber();
+  return perSec > 0 ? gap / perSec : null;
+}
+
 function Chip(p: { tone: string; children: preact.ComponentChildren }) {
   return <span class={`chip tone-${p.tone}`}>{p.children}</span>;
+}
+
+function Section(p: { title: string; children: preact.ComponentChildren; extra?: preact.ComponentChildren }) {
+  return (
+    <section class="window">
+      <div class="window-title">
+        <span>{p.title}</span>
+        {p.extra}
+      </div>
+      <div class="window-body">{p.children}</div>
+    </section>
+  );
 }
 
 // --- header goal ---------------------------------------------------------
@@ -51,7 +73,7 @@ export function GoalBar() {
   const s = game.value;
   const cap = s.capability.toNumber();
   return (
-    <div class="goal" title={t('goalHint', { n: fmtInt(MILESTONES.eraGoalCap) })}>
+    <div class="goal" data-coach="goal" title={t('goalHint', { n: fmtInt(MILESTONES.eraGoalCap) })}>
       <div class="goal-row">
         <span class="goal-label">{t('goal')}</span>
         <span class="goal-num">
@@ -63,7 +85,7 @@ export function GoalBar() {
   );
 }
 
-// --- resource strip ------------------------------------------------------
+// --- resources -----------------------------------------------------------
 
 export function Stats() {
   const s = game.value;
@@ -88,9 +110,7 @@ export function Stats() {
         tip={t('computeTip')}
         value={fmt(r.flops)}
         unit="FLOP/s"
-        sub={
-          hot ? `${t('throttled')} ${fmtPct(th)}` : `${fmtPct(s.trainShare)} → ${t('training').toLowerCase()}`
-        }
+        sub={hot ? `${t('throttled')} ${fmtPct(th)}` : `${fmtPct(s.trainShare)} → ${t('training')}`}
         warn={hot}
       />
       <Stat
@@ -109,14 +129,7 @@ export function Stats() {
         value={fmt(s.capability)}
         sub={`+${fmt(r.capPerSec, 2)}${t('perSec')}`}
       />
-      <Stat
-        tone="doom"
-        label={t('pdoom')}
-        tip={t('pdoomTip')}
-        value={fmtPct(pd)}
-        meter={pd}
-        sub={`#${playerRank(s)} / ${RIVALS.length + 1}`}
-      />
+      <Stat tone="doom" label={t('pdoom')} tip={t('pdoomTip')} value={fmtPct(pd)} meter={pd} />
     </section>
   );
 }
@@ -142,7 +155,7 @@ function Stat(p: {
         {p.unit && <small> {p.unit}</small>}
       </div>
       {p.meter !== undefined && <Bar value={p.meter} tone={p.warn ? 'doom' : p.tone} />}
-      <div class="stat-sub">{p.sub}</div>
+      {p.sub && <div class="stat-sub">{p.sub}</div>}
     </div>
   );
 }
@@ -168,7 +181,7 @@ export function ObjectiveCard() {
   );
 }
 
-// --- benchmark + allocation ----------------------------------------------
+// --- deck: benchmark + allocation ----------------------------------------
 
 export function BenchmarkButton() {
   const [pops, setPops] = useState<{ id: number; x: number; y: number }[]>([]);
@@ -182,7 +195,7 @@ export function BenchmarkButton() {
     setTimeout(() => setPops((p) => p.filter((q) => q.id !== id)), 800);
   };
   return (
-    <button class="key key-big" onClick={click}>
+    <button class="key key-big bench" data-coach="benchmark" onClick={click}>
       <span class="key-title">{t('benchmark')}</span>
       <span class="key-sub">{t('benchmarkSub', { n: ECONOMY.benchmarkCash })}</span>
       {pops.map((p) => (
@@ -194,20 +207,47 @@ export function BenchmarkButton() {
   );
 }
 
+const PRESETS: [Key, number][] = [
+  ['presetCash', 0.2],
+  ['presetBalanced', 0.5],
+  ['presetTrain', 0.8],
+];
+
 export function Allocation() {
   const s = game.value;
   const r = rates(s);
   const pct = Math.round(s.trainShare * 100);
+  const next = nextModel(s);
+  const secs = next ? capEta(next.cap, s) : null;
+  let nextLine = '';
+  if (next && r.flops > 0) {
+    const model = modelName(s.modelsShipped);
+    nextLine =
+      secs === 0
+        ? t('nextReleaseReady', { model })
+        : t('nextRelease', { model, t: secs === null ? '∞' : fmtDuration(secs) });
+  }
   return (
-    <div class="alloc">
-      <div class="alloc-head">
-        <span class="tone-cash">
-          {t('serving')} {100 - pct}%<small>+${fmt(r.cashPerSec)}/s</small>
-        </span>
+    <div class="alloc" data-coach="alloc">
+      <div class="alloc-top">
         <span class="alloc-title">{t('allocation')}</span>
-        <span class="tone-cap right">
-          {t('training')} {pct}%<small>+{fmt(r.capPerSec, 2)} cap/s</small>
-        </span>
+        <span class="dim small">{t('allocTotal', { n: fmt(r.flops) })}</span>
+      </div>
+      <div class="alloc-sides">
+        <div class="side tone-cash">
+          <div class="side-head">
+            {t('serving')} <b>{100 - pct}%</b>
+          </div>
+          <div class="side-rate">+${fmt(r.cashPerSec)}/s</div>
+          <div class="side-what">{t('servingWhat')}</div>
+        </div>
+        <div class="side tone-cap right">
+          <div class="side-head">
+            {t('training')} <b>{pct}%</b>
+          </div>
+          <div class="side-rate">+{fmt(r.capPerSec, 2)} cap/s</div>
+          <div class="side-what">{t('trainingWhat')}</div>
+        </div>
       </div>
       <input
         type="range"
@@ -219,117 +259,84 @@ export function Allocation() {
         style={{ '--pct': `${pct}%` }}
         onInput={(e) => dispatch({ type: 'setTrainShare', share: Number(e.currentTarget.value) / 100 })}
       />
+      <div class="alloc-foot">
+        <div class="seg-group">
+          {PRESETS.map(([k, v]) => (
+            <button
+              key={k}
+              class={`seg seg-sm${Math.abs(s.trainShare - v) < 0.01 ? ' active' : ''}`}
+              onClick={() => dispatch({ type: 'setTrainShare', share: v })}
+            >
+              {t(k)}
+            </button>
+          ))}
+        </div>
+        {nextLine && <span class={`next-line${secs === 0 ? ' ready' : ''}`}>{nextLine}</span>}
+      </div>
     </div>
   );
 }
 
-// --- tabs ----------------------------------------------------------------
+// --- action column: release, research, hardware --------------------------
 
-type Tab = 'hardware' | 'research' | 'models' | 'race';
-
-export function Shop() {
-  const [tab, setTab] = useState<Tab>('hardware');
-  const s = game.value;
-  const affordableResearch = researchAvailable(s).some((r) => s.cash.gte(r.cost));
-  const tabs: { id: Tab; label: Key; badge?: boolean }[] = [
-    { id: 'hardware', label: 'tabHardware' },
-    { id: 'research', label: 'tabResearch', badge: affordableResearch },
-    { id: 'models', label: 'tabModels', badge: canShip(s) },
-    { id: 'race', label: 'tabRace' },
-  ];
+export function Actions() {
   return (
-    <section class="window shop">
-      <div class="tabs" role="tablist">
-        {tabs.map((x) => (
-          <button
-            key={x.id}
-            role="tab"
-            aria-selected={tab === x.id}
-            class={`tab${tab === x.id ? ' active' : ''}`}
-            onClick={() => setTab(x.id)}
-          >
-            {t(x.label)}
-            {x.badge && <i class="badge" />}
-          </button>
-        ))}
-      </div>
-      <div class="tab-body">
-        {tab === 'hardware' && <Hardware />}
-        {tab === 'research' && <Research />}
-        {tab === 'models' && <Models />}
-        {tab === 'race' && <Race />}
-      </div>
-    </section>
+    <>
+      <Release />
+      <ResearchSection />
+      <HardwareSection />
+    </>
   );
 }
 
-function Hardware() {
+function Release() {
   const s = game.value;
-  const [mode, setMode] = useState<BuyCount>(1);
   const ic = icons();
-  const visible = BUILDING_ORDER.filter((id) => s.owned[id] > 0 || s.cashEarned.gte(BUILDINGS[id].revealAt));
-  const nextLocked = BUILDING_ORDER.find((id) => !visible.includes(id));
-  const fuse = fuseCost(s.fuseLevel);
-  const showFuse = s.fuseLevel > 0 || powerDemandMW(s) > powerCapMW(s) * 0.6;
+  const i = s.modelsShipped;
+  const next = MODELS[i];
+  if (!next) {
+    return (
+      <Section title={t('secRelease')}>
+        <p class="empty">{t('allShipped')}</p>
+      </Section>
+    );
+  }
+  const ready = canShip(s);
+  const secs = capEta(next.cap, s);
   return (
-    <div class="list">
-      <div class="buy-mode">
-        <span class="dim">{t('buyMode')}</span>
-        {([1, 10, 'max'] as const).map((m) => (
-          <button key={m} class={`seg${mode === m ? ' active' : ''}`} onClick={() => setMode(m)}>
-            {m === 'max' ? t('buyMax') : `×${m}`}
-          </button>
-        ))}
-      </div>
-      {visible.map((id) => {
-        const b = BUILDINGS[id];
-        const owned = s.owned[id];
-        const n = mode === 'max' ? Math.max(1, maxAffordable(id, owned, s.cash)) : mode;
-        const cost = bulkCost(id, owned, n);
-        const ok = s.cash.gte(cost);
-        return (
-          <Item
-            key={id}
-            icon={ic[id]}
-            title={t(`b.${id}` as Key)}
-            count={owned}
-            desc={t(`b.${id}.d` as Key)}
-            chips={[
-              <Chip tone="compute">+{fmt(b.flops)} FLOP/s</Chip>,
-              <Chip tone="power">{fmtPower(b.powerMW)}</Chip>,
-            ]}
-            price={`$${fmt(cost)}`}
-            qty={n > 1 ? `×${n}` : undefined}
-            ok={ok}
-            eta={eta(cost, s)}
-            onBuy={() => dispatch({ type: 'buy', building: id, count: n })}
-          />
-        );
-      })}
-      {showFuse && (
-        <Item
-          icon={ic.fuse}
-          title={t('fuse')}
-          count={s.fuseLevel}
-          desc={t('fuse.d')}
-          chips={[<Chip tone="power">{t('fuseEffect', { n: s.fuseLevel + 1 })}</Chip>]}
-          price={`$${fmt(fuse)}`}
-          ok={s.cash.gte(fuse)}
-          eta={eta(fuse, s)}
-          hot={throttle(s) < 1}
-          onBuy={() => dispatch({ type: 'buyFuse' })}
-        />
-      )}
-      {nextLocked && (
-        <div class="item locked">
-          <div class="item-icon">?</div>
-          <div class="item-main">
-            <div class="item-title">{t('locked')}</div>
-            <div class="item-desc">{t('lockedHint')}</div>
+    <Section title={t('secRelease')} extra={<span class="dim">{`${i}/${MODELS.length}`}</span>}>
+      <div class={`model-card${ready ? ' ready' : ''}`}>
+        <div class="model-head">
+          <img src={ic.model} alt="" class="px-icon" />
+          <div class="grow">
+            <div class="model-name">{modelName(i)}</div>
+            <div class="dim small">{t('params', { n: next.params })}</div>
           </div>
         </div>
-      )}
-    </div>
+        <p class="model-tag">“{tk(`m.${i}`)}”</p>
+        <div class="chips">
+          <Chip tone="cash">{t('priceUp', { n: next.priceMult, c: fmt(next.hypeCash) })}</Chip>
+        </div>
+        <Bar value={s.capability.toNumber() / next.cap} tone="cap" />
+        <button
+          class="key key-primary"
+          data-coach="ship"
+          disabled={!ready}
+          onClick={() => dispatch({ type: 'ship' })}
+        >
+          <span>{ready ? t('shipIt') : t('shipNeeds', { n: fmt(next.cap) })}</span>
+          {!ready && (
+            <span class="key-sub">
+              {secs !== null
+                ? t('etaTraining', { t: fmtDuration(secs) })
+                : rates(s).flops > 0
+                  ? t('noTraining')
+                  : ''}
+            </span>
+          )}
+        </button>
+      </div>
+    </Section>
   );
 }
 
@@ -344,129 +351,133 @@ function effects(r: (typeof RESEARCH)[number]) {
   return out;
 }
 
-function Research() {
+function ResearchSection() {
   const s = game.value;
   const ic = icons();
   const open = researchAvailable(s);
   const next = RESEARCH.find((r) => !s.research.includes(r.id) && s.capability.lt(r.unlockCap));
   const done = RESEARCH.filter((r) => s.research.includes(r.id));
+  const nextSecs = next ? capEta(next.unlockCap, s) : null;
   return (
-    <div class="list">
-      <p class="intro">{t('researchIntro')}</p>
-      {open.length === 0 && <p class="empty">{t('researchNone')}</p>}
-      {open.map((r) => (
-        <Item
-          key={r.id}
-          icon={ic.paper}
-          title={tk(`r.${r.id}`)}
-          desc={tk(`r.${r.id}.d`)}
-          chips={effects(r)}
-          price={`$${fmt(r.cost)}`}
-          action={t('publish')}
-          ok={s.cash.gte(r.cost)}
-          eta={eta(new Decimal(r.cost), s)}
-          onBuy={() => dispatch({ type: 'research', id: r.id })}
-        />
-      ))}
-      {next && <p class="next">{t('researchNext', { n: fmt(next.unlockCap) })}</p>}
-      {done.length > 0 && (
-        <div class="done-list">
-          <div class="done-head">{t('researchDone')}</div>
-          {done.map((r) => (
-            <div key={r.id} class="done-row">
-              <span>{tk(`r.${r.id}`)}</span>
-              <span class="chips">{effects(r)}</span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function Models() {
-  const s = game.value;
-  const ic = icons();
-  const i = s.modelsShipped;
-  const next = MODELS[i];
-  return (
-    <div class="list">
-      <p class="intro">{t('modelsIntro')}</p>
-      {next ? (
-        <div class={`model-card${canShip(s) ? ' ready' : ''}`}>
-          <div class="model-head">
-            <img src={ic.model} alt="" class="px-icon" />
-            <div>
-              <div class="model-name">{modelName(i)}</div>
-              <div class="dim">{t('params', { n: next.params })}</div>
-            </div>
-          </div>
-          <p class="model-tag">“{tk(`m.${i}`)}”</p>
-          <div class="chips">
-            <Chip tone="cash">{t('priceUp', { n: next.priceMult, c: fmt(next.hypeCash) })}</Chip>
-          </div>
-          <Bar value={s.capability.toNumber() / next.cap} tone="cap" />
-          <button class="key key-primary" disabled={!canShip(s)} onClick={() => dispatch({ type: 'ship' })}>
-            {canShip(s) ? t('shipIt') : t('shipNeeds', { n: fmt(next.cap) })}
-          </button>
-        </div>
-      ) : (
-        <p class="empty">{t('allShipped')}</p>
-      )}
-      {i > 0 && (
-        <div class="done-list">
-          <div class="done-head">{t('shipped')}</div>
-          {MODELS.slice(0, i)
-            .map((m, k) => (
-              <div key={m.id} class="done-row">
-                <span>
-                  <b>{modelName(k)}</b> <span class="dim">{m.params}</span>
-                </span>
-                <span class="dim small">{tk(`m.${k}`)}</span>
-              </div>
-            ))
-            .reverse()}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function Race() {
-  const s = game.value;
-  const rows = [
-    { id: 'you', name: displayLab(), desc: t('you'), cap: s.capability.toNumber(), me: true },
-    ...RIVALS.map((r) => ({
-      id: r.id,
-      name: tk(`rival.${r.id}`),
-      desc: tk(`rival.${r.id}.d`),
-      cap: rivalCap(r, s.time),
-      me: false,
-    })),
-  ].sort((a, b) => b.cap - a.cap);
-  return (
-    <div class="list">
-      <p class="intro">{t('raceIntro', { n: fmtInt(MILESTONES.eraGoalCap) })}</p>
-      <ol class="board">
-        {rows.map((r, k) => (
-          <li key={r.id} class={r.me ? 'me' : ''}>
-            <span class="board-rank">#{k + 1}</span>
-            <div class="board-main">
-              <div class="board-top">
-                <span class="board-name">{r.name}</span>
-                <span class="board-cap">{fmt(r.cap)}</span>
-              </div>
-              <Bar value={r.cap / MILESTONES.eraGoalCap} tone={r.me ? 'cap' : 'line-2'} />
-              <div class="board-desc">{r.desc}</div>
-            </div>
-          </li>
+    <Section title={t('secResearch')} extra={<span class="dim">{`${done.length}/${RESEARCH.length}`}</span>}>
+      <div class="list">
+        {open.map((r, k) => (
+          <Item
+            key={r.id}
+            coach={k === 0 ? 'research' : undefined}
+            icon={ic.paper}
+            title={tk(`r.${r.id}`)}
+            desc={tk(`r.${r.id}.d`)}
+            chips={effects(r)}
+            price={`$${fmt(r.cost)}`}
+            action={t('publish')}
+            ok={s.cash.gte(r.cost)}
+            eta={eta(new Decimal(r.cost), s)}
+            onBuy={() => dispatch({ type: 'research', id: r.id })}
+          />
         ))}
-      </ol>
-    </div>
+        {next && (
+          <p class="next">
+            {t('researchNext', { n: fmt(next.unlockCap) })}
+            {nextSecs !== null && nextSecs > 0 && ` · ${t('etaTraining', { t: fmtDuration(nextSecs) })}`}
+          </p>
+        )}
+        {done.length > 0 && (
+          <details class="done-list">
+            <summary>{t('researchPublished', { n: done.length })}</summary>
+            {done.map((r) => (
+              <div key={r.id} class="done-row">
+                <span>{tk(`r.${r.id}`)}</span>
+                <span class="chips">{effects(r)}</span>
+              </div>
+            ))}
+          </details>
+        )}
+      </div>
+    </Section>
+  );
+}
+
+const COACH_IDS: Record<string, string> = { homePc: 'pc', accelCard: 'card' };
+
+function HardwareSection() {
+  const s = game.value;
+  const [mode, setMode] = useState<BuyCount>(1);
+  const ic = icons();
+  const visible = BUILDING_ORDER.filter((id) => s.owned[id] > 0 || s.cashEarned.gte(BUILDINGS[id].revealAt));
+  const nextLocked = BUILDING_ORDER.find((id) => !visible.includes(id));
+  const fuse = fuseCost(s.fuseLevel);
+  const showFuse = s.fuseLevel > 0 || powerDemandMW(s) > powerCapMW(s) * 0.6;
+  return (
+    <Section
+      title={t('secHardware')}
+      extra={
+        <span class="seg-group">
+          {([1, 10, 'max'] as const).map((m) => (
+            <button key={m} class={`seg seg-sm${mode === m ? ' active' : ''}`} onClick={() => setMode(m)}>
+              {m === 'max' ? t('buyMax') : `×${m}`}
+            </button>
+          ))}
+        </span>
+      }
+    >
+      <div class="list">
+        {showFuse && (
+          <Item
+            coach="fuse"
+            icon={ic.fuse}
+            title={t('fuse')}
+            count={s.fuseLevel}
+            desc={t('fuse.d')}
+            chips={[<Chip tone="power">{t('fuseEffect', { n: s.fuseLevel + 1 })}</Chip>]}
+            price={`$${fmt(fuse)}`}
+            ok={s.cash.gte(fuse)}
+            eta={eta(fuse, s)}
+            hot={throttle(s) < 1}
+            onBuy={() => dispatch({ type: 'buyFuse' })}
+          />
+        )}
+        {visible.map((id) => {
+          const b = BUILDINGS[id];
+          const owned = s.owned[id];
+          const n = mode === 'max' ? Math.max(1, maxAffordable(id, owned, s.cash)) : mode;
+          const cost = bulkCost(id, owned, n);
+          return (
+            <Item
+              key={id}
+              coach={COACH_IDS[id]}
+              icon={ic[id]}
+              title={t(`b.${id}` as Key)}
+              count={owned}
+              desc={t(`b.${id}.d` as Key)}
+              chips={[
+                <Chip tone="compute">+{fmt(b.flops)} FLOP/s</Chip>,
+                <Chip tone="power">{fmtPower(b.powerMW)}</Chip>,
+              ]}
+              price={`$${fmt(cost)}`}
+              qty={n > 1 ? `×${n}` : undefined}
+              ok={s.cash.gte(cost)}
+              eta={eta(cost, s)}
+              onBuy={() => dispatch({ type: 'buy', building: id, count: n })}
+            />
+          );
+        })}
+        {nextLocked && (
+          <div class="item locked">
+            <div class="item-icon">?</div>
+            <div class="item-main">
+              <div class="item-title">{t('locked')}</div>
+              <div class="item-desc">{t('lockedHint')}</div>
+            </div>
+          </div>
+        )}
+      </div>
+    </Section>
   );
 }
 
 function Item(p: {
+  coach?: string;
   icon?: string;
   title: string;
   count?: number;
@@ -491,7 +502,7 @@ function Item(p: {
         <div class="item-desc">{p.desc}</div>
         <div class="chips">{p.chips}</div>
       </div>
-      <button class="key key-buy" disabled={!p.ok} onClick={p.onBuy}>
+      <button class="key key-buy" data-coach={p.coach} disabled={!p.ok} onClick={p.onBuy}>
         <span class="price">{p.price}</span>
         <span class="key-sub">{p.ok ? (p.qty ?? p.action ?? t('buyMode')) : p.eta}</span>
       </button>
@@ -499,13 +510,67 @@ function Item(p: {
   );
 }
 
-// --- log + newswire ------------------------------------------------------
+// --- leaderboard ---------------------------------------------------------
+
+const ROW_H = 54;
+
+export function Leaderboard() {
+  const s = game.value;
+  const me = s.capability.toNumber();
+  const rows = [
+    { id: 'you', name: displayLab(), desc: t('you'), cap: me, me: true },
+    ...RIVALS.map((r) => ({
+      id: r.id,
+      name: tk(`rival.${r.id}`),
+      desc: tk(`rival.${r.id}.d`),
+      cap: rivalCap(r, s.time),
+      me: false,
+    })),
+  ];
+  const order = [...rows].sort((a, b) => b.cap - a.cap).map((r) => r.id);
+  return (
+    <Section title={t('leaderboard')} extra={<span class="rank-chip">#{playerRank(s)}</span>}>
+      <p class="intro">{t('lbHint', { n: fmtInt(MILESTONES.eraGoalCap) })}</p>
+      <ol class="board" data-coach="rank" style={{ height: `${rows.length * ROW_H}px` }}>
+        {rows.map((r) => {
+          const pos = order.indexOf(r.id);
+          const gap = r.cap - me;
+          return (
+            <li
+              key={r.id}
+              class={r.me ? 'me' : ''}
+              style={{ transform: `translateY(${pos * ROW_H}px)` }}
+              title={r.desc}
+            >
+              <span class="board-rank">{pos + 1}</span>
+              <div class="board-main">
+                <div class="board-top">
+                  <span class="board-name">{r.name}</span>
+                  <span class="board-cap">{fmt(r.cap)}</span>
+                </div>
+                <div class="board-bar">
+                  <Bar value={r.cap / MILESTONES.eraGoalCap} tone={r.me ? 'cap' : 'ink-3'} />
+                  {!r.me && (
+                    <span class={`board-gap ${gap > 0 ? 'tone-doom' : 'tone-ok'}`}>
+                      {gap > 0 ? t('gapAhead', { n: fmt(gap) }) : t('gapBehind', { n: fmt(-gap) })}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+    </Section>
+  );
+}
+
+// --- log -----------------------------------------------------------------
 
 export function LabLog() {
   return (
-    <section class="window log">
-      <div class="window-title">{t('log')}</div>
-      <ul>
+    <Section title={t('log')}>
+      <ul class="log">
         {log.value.length === 0 && <li class="dim">—</li>}
         {log.value.map((l) => (
           <li key={l.id} class={`tone-${l.tone}`}>
@@ -513,6 +578,6 @@ export function LabLog() {
           </li>
         ))}
       </ul>
-    </section>
+    </Section>
   );
 }
