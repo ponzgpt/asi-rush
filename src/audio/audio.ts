@@ -187,16 +187,128 @@ export function setHum(level: number) {
 }
 
 // --- music ---------------------------------------------------------------
-// Original 8-bar loop in A minor: i - i - VI - VII, 104 BPM. Layers enter with intensity.
+// Original A-minor synth score, 104 BPM, in six sections (~90 s per pass). Each pass re-rolls the lead
+// melody and arpeggio direction from a seeded RNG (4 variants), so the piece takes ~6 min to repeat.
+// Layers also gate on game progress: 0 bass + pad, 1 + arpeggio, 2 + lead, 3 + drums.
 
 const BPM = 104;
-const STEP = 60 / BPM / 2; // eighth notes
-const PROGRESSION = [45, 45, 41, 43, 45, 45, 41, 40]; // bass roots per bar (A2 A2 F2 G2 A2 A2 F2 E2)
-const PATTERN = [0, 0, 12, 0, 0, 12, 0, 7]; // per eighth, semitones above the root
-const CHORD = (root: number) => [root + 12, root + (root === 45 ? 15 : 16), root + 19]; // Am minor, others major
+const STEP = 60 / BPM / 2; // eighth notes, 8 per bar
+const A2 = 45;
+const C3 = 48;
+const D2 = 38;
+const E2 = 40;
+const F2 = 41;
+const G2 = 43;
 
-export const musicIntensity = signal(0); // 0 bass only, 1 + pads, 2 + arpeggio, 3 + drums
+type Arp = 'none' | 'up' | 'down' | 'pulse';
+interface Section {
+  bars: number[]; // bass root per bar (MIDI)
+  bass: (number | null)[]; // 8 steps: semitones above root, null = rest
+  arp: Arp;
+  lead: boolean;
+  drums: 0 | 1 | 2; // none, kick + hats, full with snare
+}
+
+const SONG: Section[] = [
+  { bars: [A2, A2, A2, A2], bass: [0, 0, 0, 0, 0, 0, 0, 0], arp: 'none', lead: false, drums: 0 }, // intro
+  {
+    bars: [A2, A2, F2, G2, A2, A2, F2, E2],
+    bass: [0, 0, 12, 0, 0, 12, 0, 7],
+    arp: 'up',
+    lead: false,
+    drums: 1,
+  },
+  {
+    bars: [A2, A2, F2, G2, A2, A2, F2, E2],
+    bass: [0, 0, 12, 0, 0, 12, 0, 7],
+    arp: 'up',
+    lead: true,
+    drums: 1,
+  },
+  {
+    bars: [D2, D2, A2, A2, F2, F2, E2, E2],
+    bass: [0, 12, 0, 12, 0, 12, 0, 12],
+    arp: 'down',
+    lead: true,
+    drums: 2,
+  },
+  {
+    bars: [F2, G2, A2, A2],
+    bass: [0, null, null, null, 0, null, null, null],
+    arp: 'pulse',
+    lead: false,
+    drums: 0,
+  },
+  {
+    bars: [A2, C3, G2, D2, A2, C3, G2, E2],
+    bass: [0, null, 0, 12, null, 0, 7, null],
+    arp: 'up',
+    lead: true,
+    drums: 2,
+  },
+];
+
+const MINOR_SCALE = [0, 2, 3, 5, 7, 8, 10]; // A natural minor, relative to A
+const RHYTHMS = [
+  [0, 3, 4, 6],
+  [0, 2, 4],
+  [0, 4, 5, 6],
+  [0, 6],
+  [0, 1, 2, 4, 6],
+];
+
+/** Triad above the bass root: minor on A and D, major elsewhere (E major = harmonic-minor dominant). */
+const chord = (root: number) => {
+  const minor = root % 12 === 9 || root % 12 === 2;
+  return [root + 12, root + (minor ? 15 : 16), root + 19];
+};
+
+function rng(seed: number) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function snapToScale(n: number): number {
+  const rel = (((n - 57) % 12) + 12) % 12;
+  const best = MINOR_SCALE.reduce((b, d) => (Math.abs(d - rel) < Math.abs(b - rel) ? d : b), 0);
+  return n - rel + best;
+}
+
+/** Lead line for one section and variant: per bar, 8 steps of MIDI notes or null. */
+const leadCache = new Map<string, (number | null)[][]>();
+function leadLine(si: number, variant: number): (number | null)[][] {
+  const key = `${si}:${variant}`;
+  const hit = leadCache.get(key);
+  if (hit) return hit;
+  const sec = SONG[si] ?? SONG[0];
+  const r = rng(si * 977 + variant * 131 + 7);
+  const motif = RHYTHMS[Math.floor(r() * RHYTHMS.length)] ?? [0];
+  const line = (sec?.bars ?? []).map((root, bar) => {
+    const steps: (number | null)[] = new Array<number | null>(8).fill(null);
+    // phrase in pairs of bars: answer bars vary the motif rhythm
+    const rhythm = bar % 2 === 0 ? motif : (RHYTHMS[Math.floor(r() * RHYTHMS.length)] ?? motif);
+    const tones = chord(root).map((n) => n + 12);
+    for (const at of rhythm) {
+      const strong = at % 4 === 0;
+      const base = tones[Math.floor(r() * tones.length)] ?? 69;
+      steps[at] = strong ? base : snapToScale(base + (r() < 0.5 ? 2 : -2));
+    }
+    return steps;
+  });
+  leadCache.set(key, line);
+  return line;
+}
+
+export const musicIntensity = signal(0);
+let section = 0;
+let bar = 0;
 let step = 0;
+let pass = 0;
 let nextAt = 0;
 
 function startMusic() {
@@ -208,34 +320,84 @@ function startMusic() {
 function schedule() {
   if (!ctx) return;
   while (nextAt < ctx.currentTime + 0.12) {
-    playStep(step, nextAt);
+    playStep(nextAt);
     nextAt += STEP;
-    step = (step + 1) % (PROGRESSION.length * 8);
+    if (++step < 8) continue;
+    step = 0;
+    if (++bar < (SONG[section]?.bars.length ?? 0)) continue;
+    bar = 0;
+    section += 1;
+    if (section >= SONG.length) {
+      section = 1; // the intro only plays once
+      pass += 1;
+    }
   }
 }
 
-function playStep(i: number, at: number) {
-  const bar = Math.floor(i / 8);
-  const beat = i % 8;
-  const root = PROGRESSION[bar] ?? 45;
+function lead(n: number, at: number, dur: number) {
+  if (!ctx) return;
+  const osc = ctx.createOscillator();
+  const lp = ctx.createBiquadFilter();
+  const g = ctx.createGain();
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(midi(n), at);
+  osc.detune.setValueAtTime(0, at);
+  osc.detune.linearRampToValueAtTime(12, at + dur); // slow vibrato-ish drift
+  lp.type = 'lowpass';
+  lp.frequency.setValueAtTime(2400, at);
+  lp.frequency.exponentialRampToValueAtTime(700, at + dur);
+  g.gain.setValueAtTime(0.0001, at);
+  g.gain.exponentialRampToValueAtTime(0.06, at + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+  osc.connect(lp).connect(g).connect(musicBus);
+  osc.start(at);
+  osc.stop(at + dur + 0.05);
+}
+
+function playStep(at: number) {
+  const sec = SONG[section];
+  if (!sec) return;
+  const root = sec.bars[bar] ?? A2;
   const level = musicIntensity.value;
+  const variant = pass % 4;
 
-  // bass: plucky square through the music bus
-  tone(midi(root + (PATTERN[beat] ?? 0)), at, STEP * 0.9, { type: 'square', gain: 0.09, bus: musicBus });
-  tone(midi(root - 12), at, STEP * 0.9, { type: 'triangle', gain: 0.12, bus: musicBus });
+  // bass: plucky square plus a triangle sub
+  const off = sec.bass[step];
+  if (off !== null && off !== undefined) {
+    tone(midi(root + off), at, STEP * 0.9, { type: 'square', gain: 0.085, bus: musicBus });
+    tone(midi(root - 12 + off), at, STEP * 0.9, { type: 'triangle', gain: 0.11, bus: musicBus });
+  }
 
-  if (level >= 1 && beat === 0) {
-    for (const n of CHORD(root)) {
-      tone(midi(n), at, STEP * 8, { type: 'sawtooth', gain: 0.022, attack: STEP * 3, bus: musicBus });
-      tone(midi(n) * 1.004, at, STEP * 8, { type: 'sawtooth', gain: 0.018, attack: STEP * 3, bus: musicBus });
+  // pad: two detuned saws per chord tone, slow attack, one per bar
+  if (step === 0) {
+    for (const n of chord(root)) {
+      tone(midi(n), at, STEP * 8, { type: 'sawtooth', gain: 0.02, attack: STEP * 3, bus: musicBus });
+      tone(midi(n) * 1.004, at, STEP * 8, { type: 'sawtooth', gain: 0.016, attack: STEP * 3, bus: musicBus });
     }
   }
-  if (level >= 2 && bar % 2 === 1) {
-    const arp = CHORD(root).map((n) => n + 12);
-    tone(midi(arp[beat % 3] ?? 69), at, STEP * 0.7, { type: 'triangle', gain: 0.05, bus: musicBus });
+
+  // arpeggio
+  if (level >= 1 && sec.arp !== 'none') {
+    const notes = chord(root).map((n) => n + 12);
+    const dir = variant % 2 === 1 && sec.arp !== 'pulse' ? (sec.arp === 'up' ? 'down' : 'up') : sec.arp;
+    const i = dir === 'down' ? 2 - (step % 3) : step % 3;
+    const n = dir === 'pulse' ? notes[0] : notes[i];
+    if (n !== undefined && (dir !== 'pulse' || step % 2 === 0))
+      tone(midi(n), at, STEP * 0.6, { type: 'triangle', gain: 0.045, bus: musicBus });
   }
-  if (level >= 3) {
-    if (beat % 4 === 0) tone(110, at, 0.18, { type: 'sine', gain: 0.25, to: 40, bus: musicBus });
-    if (beat % 2 === 1) burst(at, 0.04, 0.06, 7000, musicBus);
+
+  // lead melody
+  if (level >= 2 && sec.lead) {
+    const n = leadLine(section, variant)[bar]?.[step];
+    if (n !== null && n !== undefined) lead(n, at, STEP * 1.8);
+  }
+
+  // drums
+  if (level >= 3 && sec.drums > 0) {
+    if (step % 4 === 0) tone(110, at, 0.18, { type: 'sine', gain: 0.25, to: 40, bus: musicBus });
+    if (step % 2 === 1) burst(at, 0.04, 0.05, 7000, musicBus);
+    if (sec.drums === 2 && step % 4 === 2) burst(at, 0.16, 0.16, 1200, musicBus);
+    // fill on the last bar of a section
+    if (sec.drums === 2 && bar === sec.bars.length - 1 && step >= 6) burst(at, 0.08, 0.12, 2000, musicBus);
   }
 }

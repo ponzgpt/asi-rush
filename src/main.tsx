@@ -20,7 +20,7 @@ on(playSfx);
 effect(() => {
   const s = game.value;
   const cap = s.capability.toNumber();
-  musicIntensity.value = cap >= 300 ? 3 : cap >= 40 ? 2 : cap >= 1 ? 1 : 0;
+  musicIntensity.value = cap >= 60 ? 3 : cap >= 8 ? 2 : cap >= 1 ? 1 : 0;
   setHum(Math.log10(1 + effectiveFlops(s)) / 4);
 });
 effect(() => {
