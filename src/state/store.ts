@@ -14,11 +14,13 @@ import {
   type State,
 } from '../sim/sim.ts';
 import { fmt, fmtPower } from '../ui/format.ts';
-import { t, tk } from '../ui/i18n.ts';
+import { t, tk, type Key } from '../ui/i18n.ts';
 import { RIVAL_MODELS } from '../ui/story.ts';
 import { emit } from './events.ts';
 
 export const game = signal<State>(newGame());
+// dev-only handle for poking the game from the browser console
+if (import.meta.env.DEV && typeof window !== 'undefined') Object.assign(window, { __asi: { game } });
 
 export interface LogLine {
   id: number;
@@ -122,7 +124,7 @@ function rivalsAhead(s: State): Set<string> {
 /** Turn state transitions into log lines, headlines and events. */
 function narrate(prev: State, next: State) {
   for (const id of BUILDING_ORDER) {
-    if (prev.owned[id] === 0 && next.owned[id] > 0) pushLog(t(`ev.first.${id}` as 'ev.first.homePc'), 'good');
+    if (prev.owned[id] === 0 && next.owned[id] > 0) pushLog(t(`ev.first.${id}` satisfies Key), 'good');
   }
   if (next.fuseLevel > prev.fuseLevel) {
     pushLog(t('ev.fuse', { n: fmtPower(powerCapMW(next)) }), 'good');

@@ -2,6 +2,7 @@
 // AI race (garage, dot-com office, GPU loft, datacenter) to a glowing frontier campus at the summit, where the
 // storm is about to strike. The founder stands at the bottom with a beige PC under one arm.
 import { standing, type Look } from './people.ts';
+import { painterly } from './paint.ts';
 import { gradient, INK, makeCanvas, type Painter } from './pixel.ts';
 
 const TW = 320;
@@ -237,11 +238,28 @@ let cache: { base: string; bolt: string } | null = null;
 
 export function titleArt(): { base: string; bolt: string } {
   cache ??= {
-    base: makeCanvas(TW, TH, (p) => {
-      paintBase(p);
-      paintFounder(p);
-    }).toDataURL(),
+    base: lit(
+      makeCanvas(TW, TH, (p) => {
+        paintBase(p);
+        paintFounder(p);
+      }),
+    ).toDataURL(),
     bolt: makeCanvas(TW, TH, paintBolt).toDataURL(),
   };
   return cache;
+}
+
+/** Same painterly pass as the rooms: dusk ambient, the beacon at the summit, the garage's warm window. */
+function lit(c: HTMLCanvasElement): HTMLCanvasElement {
+  painterly(c, {
+    lighting: {
+      ambient: '#8a7aa0',
+      lights: [
+        { x: 214, y: 54, r: 120, color: '#ffe9a8', k: 0.8 },
+        { x: 46, y: 160, r: 70, color: '#ffc070', k: 0.6 },
+        { x: 170, y: 120, r: 60, color: '#8ad0ff', k: 0.4 },
+      ],
+    },
+  });
+  return c;
 }

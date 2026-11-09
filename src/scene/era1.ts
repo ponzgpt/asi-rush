@@ -246,18 +246,6 @@ function backdrop(p: Painter) {
     [300, 88, 314, 74],
   ] as const)
     p.line(a, b, c, d, '#3a5ad0');
-  // fuse box on the right wall
-  p.shape(
-    [
-      [456, 86],
-      [472, 82],
-      [472, 112],
-      [456, 114],
-    ],
-    '#8a8a96',
-  );
-  p.rect(460, 92, 8, 14, INK);
-
   // workbench along the back wall
   p.shape(
     [
@@ -468,10 +456,27 @@ export function createEra1(root: Container, getLab: () => string): SceneModule {
   return createRoom(root, getLab, {
     backdrop,
     foreground,
+    lighting: {
+      ambient: '#5a5a88',
+      vignette: 0.6,
+      lights: [
+        { x: 240, y: 60, r: 240, color: '#ffcf80', k: 1.1 }, // the bare bulb
+        { x: 104, y: 78, r: 90, color: '#8a9aff', k: 0.5 }, // moonlight through the window
+        { x: 190, y: 120, r: 130, color: '#7dffa8', k: 0.22 }, // phosphor screens
+        { x: 476, y: 120, r: 120, color: '#ffa860', k: 0.5 }, // street light at the door
+      ],
+    },
+    gauges: {
+      compute: { x: 172, y: 46, w: 64, h: 42 },
+      doom: { x: 372, y: 58, r: 12 },
+      power: { x: 398, y: 30, w: 48, h: 44 },
+      capability: { x: 334, y: 86, w: 56, h: 40 },
+      cash: { x: 394, y: 86, w: 54 },
+    },
     hardware: [
-      { id: 'homePc', ...PC, paint: paintPc, slots: PC_SLOTS },
-      { id: 'accelCard', ...CARD, paint: paintCard, slots: CARD_SLOTS },
-      { id: 'workstation', ...WS, paint: paintWorkstation, slots: WS_SLOTS },
+      { id: 'homePc', ...PC, paint: paintPc, slots: PC_SLOTS, pile: { dx: 3, dy: -2 } },
+      { id: 'accelCard', ...CARD, paint: paintCard, slots: CARD_SLOTS, pile: { dx: 1, dy: -1 } },
+      { id: 'workstation', ...WS, paint: paintWorkstation, slots: WS_SLOTS, pile: { dx: 4, dy: -3 } },
     ],
     characters: [
       {
@@ -515,7 +520,7 @@ export function createEra1(root: Container, getLab: () => string): SceneModule {
       },
     ],
     sign: { cx: 244, y: 26, bg: '#f2e3c0', fg: '#c8323c' },
-    calendar: { x: 334, y: 56, bg: '#f2e3c0', fg: INK },
+    calendar: { x: 334, y: 30, bg: '#f2e3c0', fg: INK },
     edges: { top: '#140c1a', bottom: '#5c5e74', stars: false },
     update: ({ s, t, fx, glow, sprites, hot, flicker }) => {
       // bare bulb and its cone of light
@@ -563,9 +568,6 @@ export function createEra1(root: Container, getLab: () => string): SceneModule {
         if (sp.visible && rand(i * 3 + Math.floor(t * 8)) > 0.4)
           fx.rect(sp.x + 34, sp.y + 1, 2, 2).fill(hex(hot ? '#ffb33c' : '#7dffa8'));
       });
-      // fuse box: sparks when overloaded
-      if (hot && rand(Math.floor(t * 9)) > 0.6)
-        fx.rect(462 + Math.floor(rand(t) * 4), 90, 2, 2).fill(hex('#fff3a0'));
       // pizza boxes pile up with benchmarks
       const boxes = Math.min(12, Math.floor(s.benchmarks / 20));
       for (let i = 0; i < boxes; i++) {

@@ -60,7 +60,6 @@ function backdrop(p: Painter) {
   // three crooked windows with the city at sunset, blinds half down
   for (const [x, tilt] of [
     [40, -1],
-    [150, 1],
     [260, -1],
   ] as const) {
     const w: [number, number][] = [
@@ -92,18 +91,16 @@ function backdrop(p: Painter) {
   p.text(372, 36, 'Q3 GOALS:', '#3a5ad0');
   p.text(372, 46, '1. IPO', '#c8323c');
   p.text(372, 56, '2. PROFIT?', '#3a5ad0');
+  // the dashboard wall between the windows: a wood-veneer panel the screens hang on
   p.shape(
     [
-      [300, 120],
-      [340, 118],
-      [340, 160],
-      [300, 162],
+      [146, 30],
+      [248, 30],
+      [248, 116],
+      [146, 116],
     ],
-    '#1a3a8a',
+    gradient(['#6a4a32', '#4a3222'], 30, 116),
   );
-  p.text(304, 126, 'WORLD', '#ffd27a');
-  p.text(304, 134, 'WIDE', '#ffd27a');
-  p.text(304, 142, 'WEB', '#ffd27a');
   // carpet floor
   const floor: [number, number][] = [
     [0, 190],
@@ -316,9 +313,26 @@ export function createEra2(root: Container, getLab: () => string): SceneModule {
   return createRoom(root, getLab, {
     backdrop,
     foreground,
+    lighting: {
+      ambient: '#7a6a8a',
+      vignette: 0.4,
+      lights: [
+        { x: 90, y: 80, r: 170, color: '#ffa860', k: 0.6 }, // sunset through the windows
+        { x: 310, y: 80, r: 170, color: '#ffa860', k: 0.6 },
+        { x: 240, y: 6, r: 300, color: '#e0f0ff', k: 0.35 }, // fluorescent tubes
+        { x: 416, y: 150, r: 90, color: '#80c0ff', k: 0.35 }, // the server closet
+      ],
+    },
+    gauges: {
+      cash: { x: 152, y: 34, w: 90 },
+      capability: { x: 152, y: 66, w: 56, h: 46 },
+      doom: { x: 226, y: 80, r: 12 },
+      compute: { x: 370, y: 86, w: 90, h: 38 },
+      power: { x: 298, y: 116, w: 44, h: 46 },
+    },
     hardware: [
-      { id: 'towerPc', ...TOWER, paint: paintTower, slots: TOWER_SLOTS },
-      { id: 'rackServer', ...SERVER, paint: paintServer, slots: SERVER_SLOTS },
+      { id: 'towerPc', ...TOWER, paint: paintTower, slots: TOWER_SLOTS, pile: { dx: 3, dy: -2 } },
+      { id: 'rackServer', ...SERVER, paint: paintServer, slots: SERVER_SLOTS, pile: { dx: 1, dy: 0 } },
     ],
     characters: [
       {

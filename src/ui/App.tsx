@@ -19,7 +19,6 @@ import {
   LabLog,
   Leaderboard,
   ObjectiveCard,
-  Stats,
 } from './panels.tsx';
 
 const VICTORY_KEY = 'asi-rush-victory-seen';
@@ -224,10 +223,9 @@ export function App() {
           </aside>
           <section class="stage">
             <GoalBar />
-            <div class="scene-frame">
+            <div class="scene-frame" data-coach="pdoom">
               <Scene />
               {tutorial && <ObjectiveCard />}
-              <Stats />
             </div>
           </section>
           <aside class="rail rail-right">

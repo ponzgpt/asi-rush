@@ -20,7 +20,6 @@ import {
   maxAffordable,
   nextClickUpgrade,
   nextModel,
-  pDoom,
   playerRank,
   powerCapMW,
   powerDemandMW,
@@ -29,14 +28,13 @@ import {
   rivalCap,
   rivalEta,
   throttle,
-  trust,
   yearOf,
   type BuyCount,
   type State,
 } from '../sim/sim.ts';
 import { icons } from '../scene/sprites.ts';
 import { dispatch, displayLab, game, log, modelName, rivalName } from '../state/store.ts';
-import { fmt, fmtClock, fmtDuration, fmtInt, fmtPct, fmtPower } from './format.ts';
+import { fmt, fmtClock, fmtDuration, fmtInt, fmtPower } from './format.ts';
 import { t, tk, type Key } from './i18n.ts';
 import { OBJECTIVES, currentObjective } from './objectives.ts';
 
@@ -135,91 +133,6 @@ export function GoalBar() {
         <span class="clock-num year">{yearOf(s)}</span>
       </div>
     </section>
-  );
-}
-
-// --- resources -----------------------------------------------------------
-
-export function Stats() {
-  const s = game.value;
-  const r = rates(s);
-  const th = throttle(s);
-  const hot = th < 1;
-  const demand = powerDemandMW(s);
-  const cap = powerCapMW(s);
-  const pd = pDoom(s);
-  return (
-    <section class="stats" aria-label="Resources">
-      <Stat
-        tone="cash"
-        label={t('runway')}
-        tip={t('runwayTip')}
-        value={`$${fmt(s.cash)}`}
-        sub={`+$${fmt(r.cashPerSec)}${t('perSec')}`}
-      />
-      <Stat
-        tone="compute"
-        label={t('compute')}
-        tip={t('computeTip')}
-        value={fmt(r.flops)}
-        unit="FLOP/s"
-        sub={hot ? `${t('throttled')} ${fmtPct(th)}` : `${fmtPct(s.trainShare)} → ${t('training')}`}
-        warn={hot}
-      />
-      <Stat
-        tone="power"
-        label={t('power')}
-        tip={t('powerTip')}
-        value={fmtPower(demand)}
-        sub={`/ ${fmtPower(cap)}`}
-        warn={hot}
-        meter={demand / cap}
-      />
-      <Stat
-        tone="cap"
-        label={t('capability')}
-        tip={t('capabilityTip')}
-        value={fmt(s.capability)}
-        sub={`+${fmt(r.capPerSec, 2)}${t('perSec')}`}
-      />
-      <Stat
-        tone="doom"
-        coach="pdoom"
-        label={t('pdoom')}
-        tip={t('pdoomTip')}
-        value={fmtPct(pd)}
-        meter={pd}
-        sub={t('trust', { n: trust(s).toFixed(2) })}
-        warn={pd > 0.5}
-      />
-    </section>
-  );
-}
-
-function Stat(p: {
-  tone: string;
-  label: string;
-  tip: string;
-  value: string;
-  unit?: string;
-  sub?: string;
-  warn?: boolean;
-  meter?: number;
-  coach?: string;
-}) {
-  return (
-    <div class={`stat tone-${p.tone}${p.warn ? ' warn' : ''}`} title={p.tip} data-coach={p.coach}>
-      <div class="stat-label">
-        <i class="dot" />
-        {p.label}
-      </div>
-      <div class="stat-value">
-        {p.value}
-        {p.unit && <small> {p.unit}</small>}
-      </div>
-      {p.meter !== undefined && <Bar value={p.meter} tone={p.warn ? 'doom' : p.tone} />}
-      {p.sub && <div class="stat-sub">{p.sub}</div>}
-    </div>
   );
 }
 
@@ -575,9 +488,9 @@ function HardwareSection() {
               key={id}
               coach={COACH_IDS[id]}
               icon={ic[id]}
-              title={t(`b.${id}` as Key)}
+              title={t(`b.${id}` satisfies Key)}
               count={owned}
-              desc={t(`b.${id}.d` as Key)}
+              desc={t(`b.${id}.d` satisfies Key)}
               chips={[
                 <Chip tone="compute">+{fmt(b.flops)} FLOP/s</Chip>,
                 <Chip tone="power">{fmtPower(b.powerMW)}</Chip>,

@@ -4,7 +4,7 @@ import type { Container } from 'pixi.js';
 import { hex } from './palette.ts';
 import { standing, PERSON, type Look } from './people.ts';
 import { gradient, INK, type Painter } from './pixel.ts';
-import { createRoom, gText, rand, type Slot } from './room.ts';
+import { createRoom, rand, type Slot } from './room.ts';
 import type { SceneModule } from './types.ts';
 
 const K = {
@@ -120,15 +120,6 @@ function backdrop(p: Painter) {
     '#1a6a3a',
   );
   p.text(386, 64, 'EXIT', '#e8ffe8');
-  p.shape(
-    [
-      [440, 80],
-      [460, 80],
-      [460, 140],
-      [440, 140],
-    ],
-    '#c8323c',
-  );
   // raised floor with perforated tiles converging on the aisle
   p.poly(
     [
@@ -256,13 +247,29 @@ export const ART = {
 };
 
 export function createEra4(root: Container, getLab: () => string): SceneModule {
-  let users = 0;
   return createRoom(root, getLab, {
     backdrop,
     foreground,
+    lighting: {
+      ambient: '#6a7898',
+      vignette: 0.3,
+      lights: [
+        { x: 240, y: 250, r: 170, color: '#8ab0ff', k: 0.55 }, // the cold aisle
+        { x: 240, y: 0, r: 280, color: '#e8f0ff', k: 0.45 }, // ceiling strips
+        { x: 100, y: 190, r: 130, color: '#ffc040', k: 0.3 }, // gold pods
+        { x: 240, y: 95, r: 120, color: '#4080ff', k: 0.3 }, // the wall screen
+      ],
+    },
+    gauges: {
+      cash: { x: 154, y: 56, w: 84 },
+      compute: { x: 242, y: 56, w: 84, h: 28 },
+      capability: { x: 154, y: 88, w: 172, h: 46 },
+      doom: { x: 360, y: 112, r: 12 },
+      power: { x: 384, y: 80, w: 52, h: 52 },
+    },
     hardware: [
-      { id: 'dgxPod', ...POD, paint: paintPod, slots: POD_SLOTS },
-      { id: 'tensorPod', ...TPU, paint: paintTpu, slots: TPU_SLOTS },
+      { id: 'dgxPod', ...POD, paint: paintPod, slots: POD_SLOTS, pile: { dx: 2, dy: -2 } },
+      { id: 'tensorPod', ...TPU, paint: paintTpu, slots: TPU_SLOTS, pile: { dx: -2, dy: -2 } },
     ],
     characters: [
       {
@@ -276,21 +283,10 @@ export function createEra4(root: Container, getLab: () => string): SceneModule {
       },
     ],
     sign: { cx: 240, y: 44, bg: '#0a0e1a', fg: '#8ad0ff' },
-    calendar: { x: 344, y: 84, bg: '#ffffff', fg: INK },
+    calendar: { x: 340, y: 62, bg: '#ffffff', fg: INK },
     edges: { top: '#1a2030', bottom: '#5a6680', stars: false },
-    update: ({ s, t, dt, fx, glow, sprites, hot, flicker }) => {
-      // the wall screen: users of the chatbot and a scaling-law plot
-      if (!flicker) {
-        users += dt * (1 + s.modelsShipped) * 37_000;
-        const label = `${Math.floor(users).toLocaleString('en-US')} USERS`;
-        gText(fx, 160, 58, label, '#ffd27a');
-        gText(fx, 160, 66, 'CHAT', '#8ad0ff');
-        for (let x = 0; x < 160; x++) {
-          const y = 132 - Math.round(Math.log10(1 + x) * 30 + Math.sin(x * 0.3 + t) * 1);
-          fx.rect(160 + x, y, 1, 1).fill(hex('#8ad0ff'));
-        }
-        glow.rect(150, 52, 180, 86).fill({ color: 0x4080ff, alpha: 0.05 });
-      }
+    update: ({ t, fx, glow, sprites, hot, flicker }) => {
+      if (!flicker) glow.rect(150, 52, 180, 86).fill({ color: 0x4080ff, alpha: 0.05 });
       (sprites.dgxPod ?? []).forEach((sp, i) => {
         if (!sp.visible) return;
         for (let k = 0; k < 5; k++)

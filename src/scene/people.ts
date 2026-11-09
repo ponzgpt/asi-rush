@@ -19,26 +19,26 @@ export const PERSON = { w: 24, h: 44 };
 
 function head(p: Painter, l: Look, cx: number, cy: number, facing: 1 | -1) {
   // hair behind the head
-  if (l.hairStyle === 'mullet' || l.hairStyle === 'long') p.ellipse(cx - facing, cy + 3, 7, 9, l.hair);
-  if (l.hairStyle === 'hood') p.ellipse(cx, cy + 1, 9, 10, l.top);
-  p.ellipse(cx, cy, 7, 8, INK);
-  p.ellipse(cx, cy, 6, 7, l.skin);
-  p.ellipse(cx - facing * 2, cy + 2, 3, 4, l.skinShade);
-  p.ellipse(cx, cy - 1, 5, 5, l.skin);
+  if (l.hairStyle === 'mullet' || l.hairStyle === 'long') p.ellipse(cx - facing, cy + 2, 5, 7, l.hair);
+  if (l.hairStyle === 'hood') p.ellipse(cx, cy + 1, 7, 8, l.top);
+  p.ellipse(cx, cy, 5, 6, INK);
+  p.ellipse(cx, cy, 4, 5, l.skin);
+  p.ellipse(cx - facing * 2, cy + 2, 2, 3, l.skinShade);
+  p.ellipse(cx + facing, cy - 1, 3, 3, l.skin);
   // the nose: long, as tradition demands
   p.poly(
     [
       [cx + facing * 3, cy - 1],
-      [cx + facing * 9, cy + 3],
+      [cx + facing * 6, cy + 3],
       [cx + facing * 3, cy + 4],
     ],
     l.skin,
   );
-  p.line(cx + facing * 3, cy - 1, cx + facing * 9, cy + 3, INK);
-  p.line(cx + facing * 9, cy + 3, cx + facing * 3, cy + 4, INK);
+  p.line(cx + facing * 3, cy - 1, cx + facing * 6, cy + 3, INK);
+  p.line(cx + facing * 6, cy + 3, cx + facing * 3, cy + 4, INK);
   // eye
-  p.rect(cx + facing * 2 - (facing < 0 ? 2 : 0), cy - 3, 3, 3, '#ffffff');
-  p.px(cx + facing * 3, cy - 2, INK);
+  p.rect(cx + facing * 2 - (facing < 0 ? 1 : 0), cy - 2, 2, 2, '#ffffff');
+  p.px(cx + facing * 2 + (facing > 0 ? 1 : -1), cy - 1, INK);
   if (l.glasses) {
     p.rect(cx + facing * 1 - (facing < 0 ? 4 : 0), cy - 4, 5, 1, INK);
     p.rect(cx + facing * 1 - (facing < 0 ? 4 : 0), cy - 4, 1, 4, INK);
@@ -46,14 +46,14 @@ function head(p: Painter, l: Look, cx: number, cy: number, facing: 1 | -1) {
     p.rect(cx + facing * 1 - (facing < 0 ? 4 : 0), cy - 1, 5, 1, INK);
   }
   // mouth
-  p.rect(cx + facing * 2 - (facing < 0 ? 2 : 0), cy + 5, 3, 1, INK);
+  p.rect(cx + facing * 2 - (facing < 0 ? 2 : 0), cy + 4, 2, 1, INK);
   if (l.beard)
     p.poly(
       [
-        [cx - 5, cy + 3],
-        [cx + 5, cy + 3],
-        [cx + 3, cy + 8],
-        [cx - 3, cy + 8],
+        [cx - 4, cy + 2],
+        [cx + 4, cy + 2],
+        [cx + 2, cy + 6],
+        [cx - 2, cy + 6],
       ],
       l.beard,
     );
@@ -61,53 +61,53 @@ function head(p: Painter, l: Look, cx: number, cy: number, facing: 1 | -1) {
   if (l.hairStyle === 'mullet' || l.hairStyle === 'long')
     p.poly(
       [
-        [cx - 7, cy - 2],
-        [cx - 5, cy - 8],
-        [cx + 5, cy - 8],
-        [cx + 7, cy - 3],
-        [cx + 1, cy - 5],
+        [cx - 5, cy - 1],
+        [cx - 4, cy - 6],
+        [cx + 4, cy - 6],
+        [cx + 5, cy - 2],
+        [cx + 1, cy - 4],
       ],
       l.hair,
     );
   if (l.hairStyle === 'spiky')
-    for (let i = -6; i <= 5; i += 3)
+    for (let i = -4; i <= 3; i += 2)
       p.poly(
         [
-          [cx + i, cy - 4],
-          [cx + i + 1, cy - 11],
-          [cx + i + 3, cy - 4],
+          [cx + i, cy - 3],
+          [cx + i + 1, cy - 8],
+          [cx + i + 3, cy - 3],
         ],
         l.hair,
       );
   if (l.hairStyle === 'bun') {
     p.poly(
       [
-        [cx - 7, cy - 1],
-        [cx - 5, cy - 7],
-        [cx + 6, cy - 7],
-        [cx + 7, cy - 2],
+        [cx - 5, cy - 1],
+        [cx - 4, cy - 5],
+        [cx + 4, cy - 5],
+        [cx + 5, cy - 1],
       ],
       l.hair,
     );
-    p.ellipse(cx - facing * 5, cy - 8, 3, 3, l.hair);
+    p.ellipse(cx - facing * 4, cy - 6, 3, 3, l.hair);
   }
   if (l.hairStyle === 'hood')
     p.poly(
       [
-        [cx - 8, cy - 2],
-        [cx - 5, cy - 9],
-        [cx + 5, cy - 9],
-        [cx + 8, cy - 2],
-        [cx + 6, cy - 6],
-        [cx - 6, cy - 6],
+        [cx - 6, cy - 1],
+        [cx - 4, cy - 6],
+        [cx + 4, cy - 6],
+        [cx + 6, cy - 1],
+        [cx + 4, cy - 4],
+        [cx - 4, cy - 4],
       ],
       l.top,
     );
-  if (l.hairStyle === 'bald') p.rect(cx - 5, cy - 7, 10, 1, l.skinShade);
+  if (l.hairStyle === 'bald') p.rect(cx - 4, cy - 5, 10, 1, l.skinShade);
   if (l.headset) {
-    p.rect(cx - 7, cy - 8, 14, 1, INK);
-    p.rect(cx - facing * 7, cy - 2, 2, 5, INK);
-    p.line(cx - facing * 6, cy + 3, cx + facing * 4, cy + 6, INK);
+    p.rect(cx - 5, cy - 6, 10, 1, INK);
+    p.rect(cx - facing * 5, cy - 1, 2, 5, INK);
+    p.line(cx - facing * 4, cy + 2, cx + facing * 3, cy + 4, INK);
   }
 }
 
@@ -173,7 +173,7 @@ export function standing(l: Look, facing: 1 | -1 = 1) {
       [
         [cx + facing * 5, 18],
         [cx + facing * 8, 18 + lift],
-        [cx + facing * 9, 28 + lift],
+        [cx + facing * 6, 28 + lift],
         [cx + facing * 6, 28],
       ],
       l.top,
@@ -214,8 +214,8 @@ export function seated(l: Look, facing: 1 | -1 = 1) {
     p.shape(
       [
         [cx - 4, 22],
-        [cx + facing * 9, 23],
-        [cx + facing * 9, 27],
+        [cx + facing * 6, 23],
+        [cx + facing * 6, 27],
         [cx - 4, 28],
       ],
       l.legs,

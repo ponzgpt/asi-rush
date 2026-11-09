@@ -168,13 +168,17 @@ const core = {
   // log + news events
   log: 'Lab log',
   newswire: 'Newswire',
-  'ev.first.homePc': 'First Home PC online. The cat has been evicted from the garage.',
-  'ev.first.accelCard': 'First accelerator installed. The garage now smells like toast.',
-  'ev.first.serverRack': 'First server rack delivered. The neighbors have questions.',
-  'ev.first.vectorCabinet': 'First vector supercomputer bolted to the floor. The floor complained.',
-  'ev.first.hypercube': 'First hypercube online. It immediately asked for a raise.',
-  'ev.first.waferEngine': 'First wafer-scale engine arrives on a flatbed. With an escort.',
-  'ev.first.dataHall': 'First data hall powered up. A nearby lake reports feeling warm.',
+  'ev.first.homePc': 'First beige PC online. The cat has been evicted from the garage.',
+  'ev.first.accelCard': 'First coprocessor card seated. The garage now smells like toast.',
+  'ev.first.workstation': 'First Unix workstation arrives. It cost more than the car. It is purple.',
+  'ev.first.towerPc': 'First black tower on a desk. The intern named it Optimus.',
+  'ev.first.rackServer': 'First 1U server in the closet. The closet now hums.',
+  'ev.first.gamingRig': 'First gaming rig built. It is for research. The RGB is for research too.',
+  'ev.first.gpuServer': 'First GPU server on the shelf. The loft is warmer than the summer.',
+  'ev.first.dgxPod': 'First AI pod rolled in on a pallet. Gold-plated, like the invoice.',
+  'ev.first.tensorPod': 'First tensor pod plumbed in. The datacenter now has a plumber.',
+  'ev.first.rubinRack': 'First superchip rack powered up. One rack, one small town of electricity.',
+  'ev.first.dataHall': 'First data hall online. A nearby lake reports feeling warm.',
   'ev.fuse': 'Power upgraded. Site capacity is now {n}.',
   'ev.throttle': 'Power demand exceeds capacity. Compute throttled to {n}%.',
   'ev.research': 'Paper published: {name}.',
@@ -414,13 +418,17 @@ const es: Record<Key, string> = {
 
   log: 'Bitácora',
   newswire: 'Teletipo',
-  'ev.first.homePc': 'Primer PC en marcha. El gato ha sido desahuciado del garaje.',
-  'ev.first.accelCard': 'Primera aceleradora instalada. El garaje huele a tostada.',
-  'ev.first.serverRack': 'Primer rack entregado. Los vecinos tienen preguntas.',
-  'ev.first.vectorCabinet': 'Primer supercomputador vectorial atornillado al suelo. El suelo se ha quejado.',
-  'ev.first.hypercube': 'Primer hipercubo en marcha. Ya ha pedido un aumento.',
-  'ev.first.waferEngine': 'Llega el primer motor de oblea en un tráiler. Con escolta.',
-  'ev.first.dataHall': 'Primera nave de datos encendida. Un lago cercano dice que tiene calor.',
+  'ev.first.homePc': 'Primer PC beige en marcha. El gato ha sido desahuciado del garaje.',
+  'ev.first.accelCard': 'Primera tarjeta coprocesadora instalada. El garaje huele a tostada.',
+  'ev.first.workstation': 'Llega la primera estación Unix. Costó más que el coche. Es morada.',
+  'ev.first.towerPc': 'Primera torre negra en una mesa. El becario la ha llamado Optimus.',
+  'ev.first.rackServer': 'Primer servidor 1U en el armario. El armario ahora zumba.',
+  'ev.first.gamingRig': 'Primer PC gaming montado. Es para investigar. El RGB también.',
+  'ev.first.gpuServer': 'Primer servidor de GPUs en la estantería. El loft da más calor que el verano.',
+  'ev.first.dgxPod': 'Llega el primer pod de IA en un palé. Bañado en oro, como la factura.',
+  'ev.first.tensorPod': 'Primer pod tensorial conectado a la fontanería. El datacenter ya tiene fontanero.',
+  'ev.first.rubinRack': 'Primer rack de superchips encendido. Un rack, la luz de un pueblo pequeño.',
+  'ev.first.dataHall': 'Primera nave de datos en marcha. Un lago cercano dice que tiene calor.',
   'ev.fuse': 'Energía ampliada. La instalación aguanta ahora {n}.',
   'ev.throttle': 'La demanda supera la capacidad. Cómputo limitado al {n}%.',
   'ev.research': 'Paper publicado: {name}.',
@@ -524,7 +532,10 @@ export function setLang(l: Lang) {
 }
 
 export function t(key: Key, vars: Record<string, string | number> = {}): string {
-  return DICTS[lang.value][key].replace(/\{(\w+)\}/g, (_, k: string) => String(vars[k] ?? `{${k}}`));
+  // a missing string must never throw: it would abort the action that triggered the text
+  return (DICTS[lang.value][key] ?? en[key] ?? key).replace(/\{(\w+)\}/g, (_, k: string) =>
+    String(vars[k] ?? `{${k}}`),
+  );
 }
 
 /** For keys built from data ids, e.g. `r.${id}`. */

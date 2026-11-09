@@ -29,8 +29,9 @@ Incremental/idle web game: the real AI race, five eras from a garage to superint
    (ClosedAI, Hintern, LeCan…) by the owner's choice; never real logos or exact real names. Each era has its own
    roster, so the leaderboard follows history.
 7. All player-facing text goes through `t()` with both EN and ES entries (`es` is typed as complete).
-8. No image or audio asset files: art is painted in code (`src/scene/`, MI2/DOTT-style shapes with ink
-   outlines), sound synthesized in `src/audio/`. Hardware must look like its era. `public/og.png` is a capture.
+8. No image or audio asset files: art is painted in code and lit by `src/scene/paint.ts`; sound is synthesized.
+   Hardware must look like its era and be shown 1:1 (one sprite per unit, no "+N"); resources live in the room
+   as objects (`gauges.ts`), not as a HUD over it.
 9. The game clock starts only after the briefing (`startLoop`), so rivals don't advance on a title screen.
 10. Rivals are deterministic functions of time (`rivalCap`): the defeat condition must stay reproducible in tests.
 11. Time only advances while the page is open and visible; never add offline catch-up for one side only.

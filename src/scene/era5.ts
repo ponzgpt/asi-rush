@@ -263,9 +263,25 @@ export function createEra5(root: Container, getLab: () => string): SceneModule {
   return createRoom(root, getLab, {
     backdrop,
     foreground,
+    lighting: {
+      ambient: '#8a7898',
+      vignette: 0,
+      lights: [
+        { x: 240, y: 90, r: 320, color: '#ffa070', k: 0.45 }, // dusk through the glass
+        { x: 240, y: 240, r: 220, color: '#a0b0ff', k: 0.35 }, // the control floor
+        { x: 150, y: 150, r: 130, color: '#76b900', k: 0.2 }, // the racks
+      ],
+    },
+    gauges: {
+      cash: { x: 10, y: 8, w: 84 },
+      compute: { x: 100, y: 8, w: 84, h: 30 },
+      capability: { x: 298, y: 8, w: 86, h: 34 },
+      power: { x: 390, y: 8, w: 82, h: 34 },
+      doom: { x: 150, y: 62, r: 12 },
+    },
     hardware: [
-      { id: 'rubinRack', ...RACK, paint: paintRack, slots: RACK_SLOTS },
-      { id: 'dataHall', ...HALL, paint: paintHall, slots: HALL_SLOTS },
+      { id: 'rubinRack', ...RACK, paint: paintRack, slots: RACK_SLOTS, pile: { dx: 3, dy: -2 } },
+      { id: 'dataHall', ...HALL, paint: paintHall, slots: HALL_SLOTS, pile: { dx: 2, dy: -1 } },
     ],
     characters: [
       {

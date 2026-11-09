@@ -55,13 +55,20 @@ Vite + TypeScript (strict) · PixiJS v8 (scene) · Preact + @preact/signals (DOM
 - **Layout:** hero bar (title, lab name, ☰ menu with music, sound, fullscreen, help, settings) · NYSE-style
   newswire (headlines plus live lab "quotes": capability and 5-minute change) · left: leaderboard and log ·
   centre: the round strip (era, round, progress with the leader's marker, rival and player ETAs, game clock) above
-  the lab, with resources and P(doom) as an in-scene HUD · right: release, research and hardware (each scrolls on
+  the lab, whose resources are physical objects in the room (bank board or stock ticker, compute terminal, the
+  era's power hardware from fuse box to grid link, Capability chart, doomsday clock for P(doom)) · right: release, research and hardware (each scrolls on
   its own), then the benchmark key, its upgrade and the allocation. The scene grows extra sky and ground to fill
   tall frames.
 - **Tutorial:** 9 objectives with coach marks until the first milestone, then one-off tips (papers, click upgrades,
   P(doom), deadlines, each new era). Help has a "winning and losing" section and a glossary.
 - **Audio:** per-event SFX, room tone and five original synth tracks that rotate every two passes, with era
   playlists, seeded melody variations and layers that build with progress.
+
+- **Diegetic hardware:** every unit owned is one sprite in the room. Spots fill first, then units pile up
+  behind each other (`src/scene/pile.ts`), so the room always shows exactly what you own.
+- **Art pass:** shapes are drawn flat, then `src/scene/paint.ts` turns ink outlines into darker shades of their
+  neighbours, adds brush and grain texture, lights the room with coloured sources over a tinted ambient and
+  quantizes with an ordered dither. Sprites are tinted by the light where they stand.
 
 ## Roadmap
 

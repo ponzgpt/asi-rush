@@ -50,7 +50,7 @@ function backdrop(p: Painter) {
     for (let x = (y / 6) % 2 ? 0 : 10; x < 480; x += 20) p.line(x, y, x, y + 5, K.mortar);
   }
   // big arched factory windows with the city at night
-  for (const x of [30, 140]) {
+  for (const x of [30]) {
     const w: [number, number][] = [
       [x, 50],
       [x + 4, 38],
@@ -72,30 +72,6 @@ function backdrop(p: Painter) {
     p.line(x, 80, x + 80, 80, INK);
     p.outline(w, INK);
   }
-  // the professor's whiteboard: a neural net and a loss curve
-  p.shape(
-    [
-      [236, 36],
-      [314, 34],
-      [314, 92],
-      [236, 94],
-    ],
-    '#c8c8c0',
-  );
-  for (const [cx, cy] of [
-    [248, 48],
-    [248, 64],
-    [248, 80],
-    [268, 56],
-    [268, 72],
-    [288, 64],
-  ])
-    p.ellipse(cx as number, cy as number, 3, 3, '#3a5ad0');
-  for (const a of [48, 64, 80]) for (const b of [56, 72]) p.line(251, a, 265, b, '#6a7ad0');
-  p.line(271, 56, 285, 64, '#6a7ad0');
-  p.line(271, 72, 285, 64, '#6a7ad0');
-  p.text(296, 40, 'L', '#c8323c');
-  for (let x = 0; x < 14; x++) p.px(296 + x, 46 + Math.round(30 / (x + 2)), '#c8323c');
   // a poster of the 2012 image contest
   p.shape(
     [
@@ -295,9 +271,26 @@ export function createEra3(root: Container, getLab: () => string): SceneModule {
   return createRoom(root, getLab, {
     backdrop,
     foreground,
+    lighting: {
+      ambient: '#6a5e8a',
+      vignette: 0.5,
+      lights: [
+        { x: 260, y: 30, r: 260, color: '#ffc080', k: 0.9 }, // the work lamp over the desks
+        { x: 400, y: 88, r: 130, color: '#ff5ad0', k: 0.6 }, // the neon sign
+        { x: 120, y: 170, r: 170, color: '#80d0ff', k: 0.35 }, // monitors
+        { x: 70, y: 80, r: 90, color: '#8a9aff', k: 0.45 }, // the city through the window
+      ],
+    },
+    gauges: {
+      compute: { x: 142, y: 34, w: 76, h: 40 },
+      power: { x: 142, y: 78, w: 76, h: 42 },
+      doom: { x: 125, y: 60, r: 11 },
+      cash: { x: 372, y: 22, w: 98 },
+      capability: { x: 236, y: 36, w: 78, h: 56 },
+    },
     hardware: [
-      { id: 'gamingRig', ...RIG, paint: paintRig, slots: RIG_SLOTS },
-      { id: 'gpuServer', ...GPU, paint: paintGpuBox, slots: GPU_SLOTS },
+      { id: 'gamingRig', ...RIG, paint: paintRig, slots: RIG_SLOTS, pile: { dx: 3, dy: -2 } },
+      { id: 'gpuServer', ...GPU, paint: paintGpuBox, slots: GPU_SLOTS, pile: { dx: 2, dy: -1 } },
     ],
     characters: [
       {
@@ -314,7 +307,7 @@ export function createEra3(root: Container, getLab: () => string): SceneModule {
       },
     ],
     sign: { cx: 186, y: 22, bg: '#1a0a14', fg: '#ff5ad0' },
-    calendar: { x: 200, y: 100, bg: '#ffffff', fg: INK },
+    calendar: { x: 112, y: 100, bg: '#ffffff', fg: INK },
     edges: { top: '#2a1c1c', bottom: '#2a1c16', stars: false },
     update: ({ t, fx, glow, sprites, hot, flicker }) => {
       // neon sign
@@ -333,8 +326,8 @@ export function createEra3(root: Container, getLab: () => string): SceneModule {
         fx.rect(sp.x + 22, sp.y + 10, 5, 5).fill(hex('#1c1c28'));
         fx.rect(sp.x + 22, sp.y + 20, 5, 5).fill(hex('#1c1c28'));
         glow.rect(sp.x + 18, sp.y + 4, 12, 30).fill({ color: rgb, alpha: 0.08 });
-        if (!flicker) {
-          // training-loss plot on the screen
+        if (!flicker && i < RIG_SLOTS.length) {
+          // training-loss plot on the front screens only (the ones behind are hidden)
           for (let x = 0; x < 13; x++)
             fx.rect(sp.x + 3 + x, sp.y + 6 + Math.round(7 / (1 + x * 0.4 + (t % 6))), 1, 1).fill(
               hex('#7dffa8'),
