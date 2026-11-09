@@ -426,6 +426,7 @@ function leadLine(ti: number, si: number, variant: number): (number | null)[][] 
 }
 
 export const musicIntensity = signal(0);
+export const titleMusic = signal(false); // the title screen plays the full arrangement
 export const musicEra = signal(0);
 const PASSES_PER_TRACK = 2;
 

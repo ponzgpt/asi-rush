@@ -13,16 +13,16 @@ Vite + TypeScript (strict) · PixiJS v8 (scene) · Preact + @preact/signals (DOM
 
 ## Architecture
 
-| Dir                   | Role                                                                                               |
-| --------------------- | -------------------------------------------------------------------------------------------------- |
-| `src/sim`             | Pure deterministic sim, fixed 10 Hz tick, `apply(state, action)` / `tick(state, dt)`; runs in Node |
-| `src/data`            | All economy constants (buildings, research, models, rivals, milestones) and newswire lines         |
-| `src/state`           | Signals store wrapping the sim; game loop, narration (log, headlines), event bus, autosave         |
-| `src/ui`              | Preact: header goal bar, stats, objectives, benchmark key, allocation, tabs, log, overlays; i18n   |
-| `src/scene`           | Pixi at 480×270: procedural pixel-art painters, garage cutaway, bloom, CRT scanlines in CSS        |
-| `src/audio`           | WebAudio: synthesized SFX per game event, room tone, 4-layer generative synth score                |
-| `src/save`            | Versioned JSON → lz-string base64; autosave 30 s; offline catch-up ≤ 24 h in 60 s steps            |
-| `scripts/simulate.ts` | Headless greedy player; milestone CSV and per-minute timeline                                      |
+| Dir                   | Role                                                                                                  |
+| --------------------- | ----------------------------------------------------------------------------------------------------- |
+| `src/sim`             | Pure deterministic sim, fixed 10 Hz tick, `apply(state, action)` / `tick(state, dt)`; runs in Node    |
+| `src/data`            | All economy constants (buildings, research, models, rivals, milestones) and newswire lines            |
+| `src/state`           | Signals store wrapping the sim; game loop, narration (log, headlines), event bus, autosave            |
+| `src/ui`              | Preact: header goal bar, stats, objectives, benchmark key, allocation, tabs, log, overlays; i18n      |
+| `src/scene`           | Pixi at 480×270: procedural pixel-art painters, garage cutaway, bloom, CRT scanlines in CSS           |
+| `src/audio`           | WebAudio: synthesized SFX per game event, room tone, 4-layer generative synth score                   |
+| `src/save`            | Versioned JSON → lz-string base64; autosave 30 s; no catch-up: the game pauses while closed or hidden |
+| `scripts/simulate.ts` | Headless greedy player; milestone CSV and per-minute timeline                                         |
 
 ## Game (shipped)
 
@@ -61,6 +61,10 @@ Vite + TypeScript (strict) · PixiJS v8 (scene) · Preact + @preact/signals (DOM
 - **M0** Era 1 playable prototype, save/load, offline, deployed. ✅
 - **M0.5** Overhaul: art, audio, onboarding, research, models, rivals, share card. ✅
 - **M0.6** Full-screen layout, tutorial coach marks, live leaderboard, allocation clarity, long-form music. ✅
+- **Pause rule:** game time only advances while the tab is open and visible. Closing or hiding it pauses everything,
+  rivals included, so nobody comes back to a round lost while away.
+- **Title screen:** full-screen title over a still of the garage, music from the first key or click (and real
+  fullscreen on desktop), then the BIOS boot and the briefing.
 - **M0.7** Eras II–III with scenes, funding rounds, defeat conditions, P(doom) mechanic, click upgrades, parody
   rivals that trade the lead, contextual tips, five-track soundtrack. ✅
 - **M1** Simulator + balance: richer strategies, timeline CSV, pacing curves, tuning across Eras 1–2.

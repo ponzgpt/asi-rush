@@ -19,7 +19,7 @@ Incremental/idle web game: 1986 alt-history labs race to build ASI in a growing 
 
 ## Non-negotiables
 
-1. `src/sim` stays pure and runs in Node: the balance simulator and offline catch-up replay it headless.
+1. `src/sim` stays pure and runs in Node: the balance simulator replays it headless.
 2. No magic numbers in logic; constants live in `src/data` so balance passes only touch tables.
 3. Every sim change ships a Vitest test; `balance.test.ts` guards pacing targets (first buy <10 s,
    first training <3 min, Era 1 in 20–40 min). Retune constants and update `docs/BALANCE.md` if it fails.
@@ -32,3 +32,4 @@ Incremental/idle web game: 1986 alt-history labs race to build ASI in a growing 
    so everything stays original, tiny and license-free. `public/og.png` is a capture of the scene.
 9. The game clock starts only after the briefing (`startLoop`), so rivals don't advance on a title screen.
 10. Rivals are deterministic functions of time (`rivalCap`): the defeat condition must stay reproducible in tests.
+11. Time only advances while the page is open and visible; never add offline catch-up for one side only.

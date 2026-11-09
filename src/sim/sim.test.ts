@@ -6,7 +6,6 @@ import {
   ECONOMY,
   ERAS,
   MODELS,
-  OFFLINE,
   RESEARCH,
   RIVALS,
   SAFETY,
@@ -29,7 +28,6 @@ import {
   rates,
   rivalCap,
   rivalEta,
-  simulateOffline,
   throttle,
   tick,
   type State,
@@ -236,20 +234,6 @@ describe('eras and the race', () => {
   });
 });
 
-describe('offline progress', () => {
-  const s = { ...newGame(), trainShare: 0, owned: pcs(3) };
-
-  it('matches online ticking', () => {
-    expect(simulateOffline(s, 600).cash.toNumber()).toBeCloseTo(3 * ECONOMY.cashPerFlop * 600);
-  });
-
-  it('is capped at 24 hours and stops when the run ends', () => {
-    const out = simulateOffline(s, 10 * OFFLINE.maxSeconds);
-    expect(out.time).toBeLessThanOrEqual(OFFLINE.maxSeconds);
-    expect(out.outcome).toBe('lost'); // nobody trained: a rival closed the round
-  });
-});
-
 describe('save codec', () => {
   it('round-trips state', () => {
     let s: State = { ...withCash(1234.5), owned: { ...pcs(4), accelCard: 2 }, fuseLevel: 2, trainShare: 0.3 };
@@ -263,6 +247,13 @@ describe('save codec', () => {
       clickUpgrades: 2,
       roundsClosedAt: [12],
     });
+  });
+
+  it('loading never advances time: the game is paused while closed', () => {
+    const s = tick({ ...newGame(), owned: pcs(3) }, 50);
+    const out = decode(encode(s, Date.now() - 7 * 24 * 3600 * 1000));
+    expect(out?.state.time).toBe(s.time);
+    expect(out?.state.cash.toString()).toBe(s.cash.toString());
   });
 
   it('rejects garbage', () => {

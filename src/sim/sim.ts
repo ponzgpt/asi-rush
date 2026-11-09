@@ -8,7 +8,6 @@ import {
   ERAS,
   MILESTONES,
   MODELS,
-  OFFLINE,
   POWER_MULT,
   RESEARCH,
   RIVALS,
@@ -403,16 +402,4 @@ export function tick(s: State, dt: number = TICK_SECONDS): State {
   }
   if (!next.outcome && pDoom(next) >= SAFETY.doomLimit) next.outcome = 'doom';
   return next;
-}
-
-/** Catch up after the game was closed: capped at 24 h, simulated in 60 s steps. */
-export function simulateOffline(s: State, elapsedSeconds: number): State {
-  let remaining = Math.min(Math.max(0, elapsedSeconds), OFFLINE.maxSeconds);
-  let out = s;
-  while (remaining > 0 && (!out.outcome || out.outcome === 'won')) {
-    const dt = Math.min(OFFLINE.stepSeconds, remaining);
-    out = tick(out, dt);
-    remaining -= dt;
-  }
-  return out;
 }

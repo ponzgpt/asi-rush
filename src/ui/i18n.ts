@@ -30,6 +30,8 @@ const en = {
 
   // boot + briefing
   bootPress: 'PRESS ANY KEY OR TAP TO CONTINUE',
+  pressStart: 'PRESS ANY KEY OR CLICK TO START',
+  titleCredit: '© 1986 · An incremental game about the race to superintelligence',
   briefingTag: 'CLASSIFIED BRIEFING · 1986',
   briefing1:
     'The Cold War has a new front: minds made of silicon. Four labs are racing to build Artificial Superintelligence.',
@@ -45,7 +47,7 @@ const en = {
   start: 'Start the race',
   continue: 'Back to the lab',
   briefingFoot:
-    'About 90 minutes for all three eras. Saves automatically. The race keeps going while you are away.',
+    'About 90 minutes for all three eras. Saves automatically. The game pauses whenever you leave: nobody moves while you are away.',
 
   // resources
   runway: 'Runway',
@@ -278,7 +280,6 @@ const en = {
   'ev.rival': '{lab} shipped {model}.',
   'ev.overtake': 'You passed {lab} on the leaderboard. Now #{n}.',
   'ev.overtaken': '{lab} passed you on the leaderboard. Now #{n}.',
-  'ev.welcome': 'Welcome back. While you were away ({t}): +${cash} and +{cap} Capability.',
   'ev.round.0': 'Series A closed. You are moving out of the garage.',
   'ev.round.1': 'Series B closed. The warehouse is too small now.',
   'ev.round.2': 'Superintelligence achieved. First.',
@@ -362,7 +363,7 @@ const en = {
   'g.pdoom':
     'P(doom) — the probability that this ends badly. It cuts revenue (public trust) and ends the game at 99%. Alignment papers lower it.',
   'g.offline':
-    'Saving — progress saves every 30 s and keeps running while you are away, for up to 24 hours. So do the rivals.',
+    'Saving and pausing — progress saves every 30 s. The whole game pauses when you close or hide the tab: nothing moves while you are away, rivals included.',
 } as const;
 
 export type Key = keyof typeof en;
@@ -393,6 +394,8 @@ const es: Record<Key, string> = {
   fullscreen: 'Pantalla completa',
 
   bootPress: 'PULSA UNA TECLA O TOCA PARA CONTINUAR',
+  pressStart: 'PULSA CUALQUIER TECLA O HAZ CLIC PARA EMPEZAR',
+  titleCredit: '© 1986 · Un juego incremental sobre la carrera hacia la superinteligencia',
   briefingTag: 'INFORME CLASIFICADO · 1986',
   briefing1:
     'La Guerra Fría tiene un nuevo frente: mentes de silicio. Cuatro laboratorios compiten por construir una Superinteligencia Artificial.',
@@ -407,7 +410,8 @@ const es: Record<Key, string> = {
   labNameDefault: 'Garage Intelligence',
   start: 'Empezar la carrera',
   continue: 'Volver al laboratorio',
-  briefingFoot: 'Unos 90 minutos para las tres eras. Se guarda solo. La carrera sigue mientras no estás.',
+  briefingFoot:
+    'Unos 90 minutos para las tres eras. Se guarda solo. La partida se pausa cuando te vas: nadie avanza mientras no estás.',
 
   runway: 'Caja',
   runwayTip: 'Dinero. Lo ganas sirviendo tu modelo a clientes que pagan.',
@@ -635,7 +639,6 @@ const es: Record<Key, string> = {
   'ev.rival': '{lab} ha lanzado {model}.',
   'ev.overtake': 'Has adelantado a {lab}. Ahora vas #{n}.',
   'ev.overtaken': '{lab} te ha adelantado. Ahora vas #{n}.',
-  'ev.welcome': 'Bienvenido de nuevo. Mientras no estabas ({t}): +${cash} y +{cap} de Capacidad.',
   'ev.round.0': 'Serie A cerrada. Te vas del garaje.',
   'ev.round.1': 'Serie B cerrada. El almacén se ha quedado pequeño.',
   'ev.round.2': 'Superinteligencia conseguida. Los primeros.',
@@ -719,7 +722,7 @@ const es: Record<Key, string> = {
   'g.pdoom':
     'P(doom) — la probabilidad de que esto acabe mal. Recorta los ingresos (confianza del público) y al 99% acaba la partida. Los papers de alineamiento lo bajan.',
   'g.offline':
-    'Guardado — la partida se guarda cada 30 s y sigue avanzando mientras no estás, hasta 24 horas. Los rivales también.',
+    'Guardado y pausa — la partida se guarda cada 30 s. Todo se pausa cuando cierras u ocultas la pestaña: nada avanza mientras no estás, tampoco los rivales.',
 };
 
 const DICTS: Record<Lang, Record<Key, string>> = { en, es };

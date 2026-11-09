@@ -8,13 +8,12 @@ import {
   powerCapMW,
   rivalCap,
   rivalReleases,
-  simulateOffline,
   throttle,
   tick,
   type Action,
   type State,
 } from '../sim/sim.ts';
-import { fmt, fmtDuration, fmtPower } from '../ui/format.ts';
+import { fmt, fmtPower } from '../ui/format.ts';
 import { t, tk } from '../ui/i18n.ts';
 import { emit } from './events.ts';
 
@@ -249,24 +248,12 @@ export function exportSave(): string {
   return encode(game.value, Date.now());
 }
 
-/** Load a save string (from storage or import) and catch up on offline time. */
+/** Load a save string (from storage or import). The game is paused while closed: no catch-up. */
 export function loadSave(text: string): boolean {
   const loaded = decode(text);
   if (!loaded) return false;
-  const away = (Date.now() - loaded.savedAt) / 1000;
-  const caughtUp = simulateOffline(loaded.state, away);
-  game.value = caughtUp;
+  game.value = loaded.state;
   log.value = [];
-  if (away > 60) {
-    pushLog(
-      t('ev.welcome', {
-        t: fmtDuration(Math.min(away, 24 * 3600)),
-        cash: fmt(caughtUp.cash.sub(loaded.state.cash)),
-        cap: fmt(caughtUp.capability.sub(loaded.state.capability)),
-      }),
-      'good',
-    );
-  }
   return true;
 }
 
@@ -280,7 +267,7 @@ export function resetGame() {
 
 // --- loop ----------------------------------------------------------------
 
-/** Load the saved run (with offline catch-up). The clock does not run until startLoop(). */
+/** Load the saved run. The clock does not run until startLoop(). */
 export function load() {
   try {
     const stored = localStorage.getItem(SAVE.storageKey);
@@ -294,18 +281,17 @@ let running = false;
 export function startLoop() {
   if (running) return;
   running = true;
+  // Time only moves while the page is open and visible: hiding or closing it pauses everyone, rivals included.
   let last = performance.now();
   let acc = 0;
   setInterval(() => {
     const now = performance.now();
-    acc += (now - last) / 1000;
-    last = now;
-    // A throttled background tab can stall for minutes: catch up in coarse steps.
-    if (acc > 5) {
-      commit(simulateOffline(game.value, acc));
-      acc = 0;
+    if (document.hidden) {
+      last = now;
       return;
     }
+    acc += Math.min(1, (now - last) / 1000); // a stalled tab never fast-forwards more than a second
+    last = now;
     let s = game.value;
     while (acc >= TICK_SECONDS) {
       s = tick(s);

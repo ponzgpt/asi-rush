@@ -317,11 +317,6 @@ export const MILESTONES = {
   firstTrainingCap: 1, // "first training" = first full point of Capability
 };
 
-export const OFFLINE = {
-  maxSeconds: 24 * 3600,
-  stepSeconds: 60,
-};
-
 export const SAVE = {
   version: 3,
   autosaveSeconds: 30,

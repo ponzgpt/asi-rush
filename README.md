@@ -18,7 +18,8 @@ Superintelligence. You have a garage, a credit card and no adult supervision.
    Series B in a warehouse, superintelligence on a campus. Lose a round to a rival and you replay the era; let
    P(doom) hit 99% and it's over.
 
-Saves every 30 s, keeps training while you are away (up to 24 h), export/import from Settings.
+Runs entirely in your browser: each visitor plays their own game, saved locally every 30 s. The game pauses
+while the tab is closed or hidden, rivals included. Export/import from Settings.
 Original pixel art and synthesized audio — no asset files. Space runs a benchmark. Spec: [docs/SPEC.md](docs/SPEC.md).
 
 ## Run

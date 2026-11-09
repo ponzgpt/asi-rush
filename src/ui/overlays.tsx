@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useMemo, useState } from 'preact/hooks';
 import { ERAS, MODELS, RIVALS } from '../data/economy.ts';
-import { audioPrefs, setAudioPrefs, unlockAudio } from '../audio/audio.ts';
+import { audioPrefs, setAudioPrefs, titleMusic, unlockAudio } from '../audio/audio.ts';
+import { garageStill } from '../scene/garage.ts';
 import { pDoom, playerRank } from '../sim/sim.ts';
 import { dispatch, displayLab, retryEra, saveEraStartNow } from '../state/store.ts';
 import {
@@ -53,19 +54,47 @@ const BIOS = [
   'LOADING ASI_RUSH.EXE',
 ];
 
+type Phase = 'title' | 'bios' | 'brief';
+
 export function Boot(p: { onDone: () => void }) {
+  const [phase, setPhase] = useState<Phase>('title');
   const [lines, setLines] = useState(0);
   const [name, setName] = useState(labName.value);
   const returning = hasStarted();
+  const art = useMemo(() => garageStill(), []);
+
+  // title -> (first key or click) -> BIOS lines -> briefing or "back to the lab"
+  const press = () => {
+    if (phase !== 'title') return;
+    unlockAudio();
+    titleMusic.value = true;
+    if (window.matchMedia('(pointer: fine)').matches && !document.fullscreenElement)
+      void document.documentElement.requestFullscreen?.().catch(() => undefined);
+    setPhase('bios');
+  };
 
   useEffect(() => {
-    if (lines >= BIOS.length) return;
-    const id = setTimeout(() => setLines((n) => n + 1), lines === 0 ? 250 : 180);
+    if (phase !== 'title') return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Tab') return;
+      press();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
+
+  useEffect(() => {
+    if (phase !== 'bios') return;
+    if (lines >= BIOS.length) {
+      const id = setTimeout(() => setPhase('brief'), 350);
+      return () => clearTimeout(id);
+    }
+    const id = setTimeout(() => setLines((n) => n + 1), lines === 0 ? 200 : 150);
     return () => clearTimeout(id);
-  }, [lines]);
+  }, [phase, lines]);
 
   const go = () => {
-    unlockAudio();
+    titleMusic.value = false;
     startLoop();
     if (!returning || name !== labName.value) setLabName(name);
     if (!returning) saveEraStartNow();
@@ -73,77 +102,89 @@ export function Boot(p: { onDone: () => void }) {
   };
 
   useEffect(() => {
-    if (!returning) return;
-    const onKey = () => go();
-    window.addEventListener('keydown', onKey, { once: true });
+    if (phase !== 'brief' || !returning) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Enter' && go();
+    window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   });
 
-  const ready = lines >= BIOS.length;
   return (
-    <div class="boot" onClick={returning ? go : undefined}>
-      <div class="boot-inner">
-        <pre class="bios">
-          {BIOS.slice(0, lines).join('\n')}
-          {!ready && <span class="caret">█</span>}
-        </pre>
-        {ready && (
-          <div class="briefing">
-            <h1 class="logo">
-              ASI<span>RUSH</span>
-            </h1>
-            <div class="tag">
-              {returning
-                ? `${tk(`era.${game.value.era}`)} · ${labName.value || t('labNameDefault')}`
-                : t('briefingTag')}
-            </div>
-            {returning ? (
-              <>
-                <button class="key key-primary key-big" onClick={go}>
-                  {t('continue')}
-                </button>
-                <p class="blink dim">{t('bootPress')}</p>
-              </>
-            ) : (
-              <>
-                <p class="lead">{t('briefing1')}</p>
-                <p class="lead">{t('briefing2')}</p>
-                <ol class="how">
-                  {(['how1', 'how2', 'how3', 'how4'] as Key[]).map((k, i) => (
-                    <li key={k}>
-                      <b>{i + 1}</b>
-                      {t(k)}
-                    </li>
-                  ))}
-                </ol>
-                <p class="goal-line">{t('briefingGoal')}</p>
-                <form
-                  class="lab-form"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    go();
-                  }}
-                >
-                  <label>
-                    {t('labNameLabel')}
-                    <input
-                      value={name}
-                      maxLength={32}
-                      placeholder={t('labNameDefault')}
-                      onInput={(e) => setName(e.currentTarget.value)}
-                    />
-                  </label>
-                  <button class="key key-primary key-big" type="submit">
-                    {t('start')}
-                  </button>
-                </form>
-                <p class="dim small">{t('briefingFoot')}</p>
-                <LangSwitch />
-              </>
-            )}
+    <div class={`splash phase-${phase}`} onClick={press} style={{ '--art': `url(${art})` }}>
+      <div class="splash-art" aria-hidden="true" />
+      <div class="splash-shade" aria-hidden="true" />
+      {phase === 'title' && (
+        <div class="splash-title">
+          <h1 class="logo">
+            ASI<span>RUSH</span>
+          </h1>
+          <p class="splash-tagline">{t('heroTagline')}</p>
+          <p class="splash-press">{t('pressStart')}</p>
+          <p class="splash-credit">{t('titleCredit')}</p>
+          <div class="splash-lang" onClick={(e) => e.stopPropagation()}>
+            <LangSwitch />
           </div>
-        )}
-      </div>
+        </div>
+      )}
+      {phase !== 'title' && (
+        <div class="splash-panel">
+          <pre class="bios">
+            {BIOS.slice(0, lines).join('\n')}
+            {phase === 'bios' && <span class="caret">█</span>}
+          </pre>
+          {phase === 'brief' && (
+            <div class="briefing">
+              <div class="tag">
+                {returning
+                  ? `${tk(`era.${game.value.era}`)} · ${labName.value || t('labNameDefault')}`
+                  : t('briefingTag')}
+              </div>
+              {returning ? (
+                <>
+                  <button class="key key-primary key-big" onClick={go}>
+                    {t('continue')}
+                  </button>
+                  <p class="blink dim">{t('bootPress')}</p>
+                </>
+              ) : (
+                <>
+                  <p class="lead">{t('briefing1')}</p>
+                  <p class="lead">{t('briefing2')}</p>
+                  <ol class="how">
+                    {(['how1', 'how2', 'how3', 'how4'] as Key[]).map((k, i) => (
+                      <li key={k}>
+                        <b>{i + 1}</b>
+                        {t(k)}
+                      </li>
+                    ))}
+                  </ol>
+                  <p class="goal-line">{t('briefingGoal')}</p>
+                  <form
+                    class="lab-form"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      go();
+                    }}
+                  >
+                    <label>
+                      {t('labNameLabel')}
+                      <input
+                        value={name}
+                        maxLength={32}
+                        placeholder={t('labNameDefault')}
+                        onInput={(e) => setName(e.currentTarget.value)}
+                      />
+                    </label>
+                    <button class="key key-primary key-big" type="submit">
+                      {t('start')}
+                    </button>
+                  </form>
+                  <p class="dim small">{t('briefingFoot')}</p>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
