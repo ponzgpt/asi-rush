@@ -41,9 +41,13 @@ const TIPS: Tip[] = [
     when: (s) => s.clickUpgrades === 0 && s.cash.gte(nextClickUpgrade(s)?.cost ?? Infinity),
   },
   { id: 'pdoom', target: 'pdoom', text: 'tip.pdoom', when: (s) => pDoom(s) >= 0.15 },
-  { id: 'era1', target: 'goal', text: 'tip.era1', when: (s) => s.era === 1 },
-  { id: 'era2', target: 'goal', text: 'tip.era2', when: (s) => s.era === 2 },
-  ...[0, 1, 2].map((era): Tip => ({
+  ...([1, 2, 3, 4] as const).map((era): Tip => ({
+    id: `era${era}`,
+    target: 'goal',
+    text: `tip.era${era}`,
+    when: (s) => s.era === era,
+  })),
+  ...[0, 1, 2, 3, 4].map((era): Tip => ({
     id: `deadline${era}`,
     target: 'goal',
     text: 'tip.deadline',

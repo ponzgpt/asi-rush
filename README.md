@@ -1,22 +1,23 @@
 # ASI RUSH
 
-An incremental game about the AI race, set in an alternate 1986. Four labs are racing to build Artificial
-Superintelligence. You have a garage, a credit card and no adult supervision.
+An incremental game about the real race to AI, told as a clicker: from beige PCs in a garage, through the AI
+winters, the dot-com boom, GPUs and transformers, to superintelligence. Four rival labs (parodies of the ones
+that actually ran the race in each era) want to get there first.
 
-**Play:** https://ponzgpt.github.io/asi-rush/ (about 90 minutes for three eras; English and Spanish)
+**Play:** https://ponzgpt.github.io/asi-rush/ (about 90 minutes for five eras; English and Spanish)
 
 ![ASI RUSH](public/og.png)
 
 ## What you do
 
 1. **Run benchmarks** for your first dollars.
-2. **Buy hardware** (Home PCs, accelerator cards, server racks) for compute — and a bigger fuse when the
-   neighbourhood lights start to dim.
+2. **Buy hardware** that follows history — beige PCs and workstations, black towers and 1U servers, RGB gaming
+   rigs and GPU boxes, gold AI pods, rack-scale superchips — and a bigger power hookup when the lights dim.
 3. **Split compute** between serving (cash) and training (Capability, with diminishing returns).
 4. **Publish research** (backprop, RLHF, a leaked fax about attention) and **ship models** that charge more per token.
-5. **Race ClosedAI, Misanthropic, YAI and ShallowMind** through three funding rounds: Series A in the garage,
-   Series B in a warehouse, superintelligence on a campus. Lose a round to a rival and you replay the era; let
-   P(doom) hit 99% and it's over.
+5. **Race the labs of each era** to five milestones: read handwritten digits (garage), beat the chess champion
+   (dot-com office), beat a Go grandmaster (GPU loft), ship a chatbot to 100M users (datacenter), superintelligence
+   (frontier). Lose a milestone to a rival and you replay the era; let P(doom) hit 99% and it's over.
 
 Runs entirely in your browser: each visitor plays their own game, saved locally every 30 s. The game pauses
 while the tab is closed or hidden, rivals included. Export/import from Settings.

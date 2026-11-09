@@ -4,7 +4,7 @@ import { audioPrefs, setAudioPrefs } from '../audio/audio.ts';
 import { mountScene } from '../scene/scene.ts';
 import { RIVALS } from '../data/economy.ts';
 import { isFinalEra, rates, rivalCap } from '../sim/sim.ts';
-import { dispatch, displayLab, game, headlines, labName, modelPrefix } from '../state/store.ts';
+import { dispatch, displayLab, game, headlines, labName, modelPrefix, rivalName } from '../state/store.ts';
 import { fmt } from './format.ts';
 import { OBJECTIVES, currentObjective } from './objectives.ts';
 import { lang, t } from './i18n.ts';
@@ -37,12 +37,12 @@ function Scene() {
   return <div class="scene" ref={host} aria-label="Your lab" role="img" />;
 }
 
-const TICKERS: Record<string, string> = {
-  closedai: 'CLSD',
-  misanthropic: 'MSNT',
-  yai: 'YAI',
-  shallowmind: 'SHLW',
-};
+/** Exchange symbol from a lab's name: the first four letters. */
+const ticker = (name: string) =>
+  name
+    .replace(/[^A-Za-z]/g, '')
+    .toUpperCase()
+    .slice(0, 4);
 
 /** Stock-style quote for a lab: capability as the price, 5-minute change as the move. */
 function Quote(p: { sym: string; now: number; then: number }) {
@@ -58,9 +58,9 @@ function Quote(p: { sym: string; now: number; then: number }) {
 function Newswire() {
   const s = game.value;
   const items = useMemo(() => {
-    const pool = [...NEWS[lang.value]].sort(() => Math.random() - 0.5).slice(0, 8);
+    const pool = [...(NEWS[lang.value][game.value.era] ?? [])].sort(() => Math.random() - 0.5).slice(0, 8);
     return [...headlines.value, ...pool];
-  }, [headlines.value, lang.value]);
+  }, [headlines.value, lang.value, game.value.era]);
   const me = s.capability.toNumber();
   const myRate = rates(s).capPerSec.toNumber();
   const quotes = [
@@ -68,7 +68,7 @@ function Newswire() {
     ...RIVALS.map((r) => (
       <Quote
         key={r.id}
-        sym={TICKERS[r.id] ?? r.id}
+        sym={ticker(rivalName(s.era, r.id))}
         now={rivalCap(r, s.time)}
         then={rivalCap(r, Math.max(0, s.time - 300))}
       />

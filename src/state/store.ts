@@ -15,6 +15,7 @@ import {
 } from '../sim/sim.ts';
 import { fmt, fmtPower } from '../ui/format.ts';
 import { t, tk } from '../ui/i18n.ts';
+import { RIVAL_MODELS } from '../ui/story.ts';
 import { emit } from './events.ts';
 
 export const game = signal<State>(newGame());
@@ -72,22 +73,36 @@ export function modelPrefix(): string {
   return initials.slice(0, 3) || 'GI';
 }
 
-const MODEL_SUFFIX = ['1', '2', '3', '4', '4 Turbo', '5', '6', '7', '7o', '8', '9', 'X', 'Omega'];
+const MODEL_SUFFIX = [
+  '1',
+  '2',
+  '3',
+  '4',
+  '5',
+  '6',
+  '7',
+  '8',
+  '9',
+  '10',
+  '10 Turbo',
+  '11',
+  '11o',
+  'X',
+  'Omega',
+];
 
 export function modelName(index: number): string {
   return `${modelPrefix()}-${MODEL_SUFFIX[index] ?? String(index + 1)}`;
 }
 
-// Rival model names, one parody per lab.
-const RIVAL_MODEL: Record<string, (n: number) => string> = {
-  closedai: (n) => `GPP-${n}`,
-  misanthropic: (n) => `Clod ${n}`,
-  yai: (n) => `Grump ${n}`,
-  shallowmind: (n) => `Gemenot ${n}`,
-};
+/** A rival slot's name in a given era: the labs of each age of AI. */
+export function rivalName(era: number, id: string): string {
+  return tk(`rival.${era}.${id}`);
+}
 
-export function rivalModelName(id: string, n: number): string {
-  return RIVAL_MODEL[id]?.(n) ?? `${id} ${n}`;
+export function rivalModelName(era: number, id: string, n: number): string {
+  const slot = Number(id.slice(1));
+  return (RIVAL_MODELS[era]?.[slot] ?? `${id} {n}`).replace('{n}', String(n));
 }
 
 let logId = 0;
@@ -136,14 +151,14 @@ function narrate(prev: State, next: State) {
   const rank = aheadAfter.size + 1;
   for (const id of aheadBefore) {
     if (aheadAfter.has(id)) continue;
-    const lab = tk(`rival.${id}`);
+    const lab = rivalName(next.era, id);
     pushLog(t('ev.overtake', { lab, n: rank }), 'good');
     pushHeadline(t('news.overtake', { lab, n: rank }));
     emit('overtake');
   }
   for (const id of aheadAfter) {
     if (aheadBefore.has(id) || prev.time === 0) continue;
-    pushLog(t('ev.overtaken', { lab: tk(`rival.${id}`), n: rank }), 'warn');
+    pushLog(t('ev.overtaken', { lab: rivalName(next.era, id), n: rank }), 'warn');
     emit('overtaken');
   }
   if (next.clickUpgrades > prev.clickUpgrades) {
@@ -156,9 +171,10 @@ function narrate(prev: State, next: State) {
     const before = rivalReleases(r, prev.time);
     const after = rivalReleases(r, next.time);
     if (after > before && prev.time > 0) {
-      const model = rivalModelName(r.id, after + 1);
-      pushHeadline(tk(`news.rival.${r.id}`, { model }));
-      pushLog(t('ev.rival', { lab: tk(`rival.${r.id}`), model }), 'info');
+      const lab = rivalName(next.era, r.id);
+      const model = rivalModelName(next.era, r.id, after + 1);
+      pushHeadline(t('news.rival', { lab, model }));
+      pushLog(t('ev.rival', { lab, model }), 'info');
       emit('rival');
     }
   }
@@ -174,7 +190,7 @@ function narrate(prev: State, next: State) {
   }
   if (!prev.outcome && (next.outcome === 'lost' || next.outcome === 'doom')) {
     pushLog(
-      next.outcome === 'doom' ? t('ev.doom') : t('ev.lost', { lab: tk(`rival.${next.lostTo ?? ''}`) }),
+      next.outcome === 'doom' ? t('ev.doom') : t('ev.lost', { lab: rivalName(next.era, next.lostTo ?? '') }),
       'warn',
     );
     emit('defeat');

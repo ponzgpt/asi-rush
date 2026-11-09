@@ -27,14 +27,7 @@ export interface GreedyOptions {
 export const DEFAULT_GREEDY: GreedyOptions = { clicksPerSec: 5, trainShare: 0.5, maxSeconds: 3 * 3600 };
 
 export type Milestone =
-  | 'firstPurchase'
-  | 'firstTraining'
-  | 'firstFuse'
-  | 'garage'
-  | 'office'
-  | 'loft'
-  | 'datacenter'
-  | 'asi';
+  'firstPurchase' | 'firstTraining' | 'firstFuse' | 'garage' | 'office' | 'loft' | 'datacenter' | 'asi';
 
 export interface Sample {
   t: number;

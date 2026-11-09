@@ -1,4 +1,4 @@
-/* ASI RUSH — 1986 lab terminal. Night-violet shell, beige keycaps, one color per resource. */
+/* ASI RUSH — lab terminal. Night-violet shell, beige keycaps, one color per resource. */
 :root {
   --bg: #0b0912;
   --bg-2: #110e1b;
@@ -844,8 +844,9 @@ input[type='range']::-moz-range-thumb {
 }
 .px-icon {
   image-rendering: pixelated;
-  width: auto;
-  height: 32px;
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
 }
 .item-title {
   font-weight: 600;
@@ -1809,10 +1810,10 @@ li.down .board-move {
 }
 .splash-glow {
   position: absolute;
-  left: 50%;
-  top: 47%;
-  width: 40vmin;
-  height: 40vmin;
+  left: 67%;
+  top: 30%;
+  width: 30vmin;
+  height: 30vmin;
   transform: translate(-50%, -50%);
   background: radial-gradient(circle, #7dffb040 0%, #7dffb014 40%, #0000 70%);
   animation: glow-pulse 3.2s ease-in-out infinite;

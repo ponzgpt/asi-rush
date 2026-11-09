@@ -21,11 +21,39 @@ export interface EraDef {
 }
 
 export const ERAS: EraDef[] = [
-  { id: 'garage', years: [1986, 1995], goal: 1_000, baseCapMW: 0.05, powerBaseCost: 100, powerCostGrowth: 3.5 },
-  { id: 'office', years: [1995, 2006], goal: 30_000, baseCapMW: 1.5, powerBaseCost: 6e4, powerCostGrowth: 3.5 },
+  {
+    id: 'garage',
+    years: [1986, 1995],
+    goal: 1_000,
+    baseCapMW: 0.05,
+    powerBaseCost: 100,
+    powerCostGrowth: 3.5,
+  },
+  {
+    id: 'office',
+    years: [1995, 2006],
+    goal: 30_000,
+    baseCapMW: 1.5,
+    powerBaseCost: 6e4,
+    powerCostGrowth: 3.5,
+  },
   { id: 'loft', years: [2006, 2016], goal: 1e6, baseCapMW: 8, powerBaseCost: 2e7, powerCostGrowth: 3.5 },
-  { id: 'datacenter', years: [2016, 2022], goal: 3e7, baseCapMW: 150, powerBaseCost: 6e9, powerCostGrowth: 3.5 },
-  { id: 'frontier', years: [2022, 2030], goal: 1e9, baseCapMW: 6000, powerBaseCost: 2e12, powerCostGrowth: 3.5 },
+  {
+    id: 'datacenter',
+    years: [2016, 2022],
+    goal: 3e7,
+    baseCapMW: 150,
+    powerBaseCost: 6e9,
+    powerCostGrowth: 3.5,
+  },
+  {
+    id: 'frontier',
+    years: [2022, 2030],
+    goal: 1e9,
+    baseCapMW: 6000,
+    powerBaseCost: 2e12,
+    powerCostGrowth: 3.5,
+  },
 ];
 
 export const POWER_MULT = 2; // each power upgrade doubles the site's cap
@@ -62,14 +90,14 @@ export const BUILDINGS: Record<BuildingId, BuildingDef> = {
   homePc: b('homePc', 0, 10, 1, 0.002),
   accelCard: b('accelCard', 0, 150, 12, 0.015, 60),
   workstation: b('workstation', 0, 2_500, 150, 0.12, 1_000),
-  towerPc: b('towerPc', 1, 5e4, 7.5e+03, 0.06),
-  rackServer: b('rackServer', 1, 1e6, 1.5e+05, 0.6),
-  gamingRig: b('gamingRig', 2, 2e7, 5e+05, 0.4),
-  gpuServer: b('gpuServer', 2, 4e8, 1e+07, 4),
-  dgxPod: b('dgxPod', 3, 8e9, 1.2e+07, 8),
-  tensorPod: b('tensorPod', 3, 1.6e11, 2.4e+08, 80),
-  rubinRack: b('rubinRack', 4, 3e12, 1.8e+09, 300),
-  dataHall: b('dataHall', 4, 6e13, 3.6e+10, 3000),
+  towerPc: b('towerPc', 1, 5e4, 7.5e3, 0.06),
+  rackServer: b('rackServer', 1, 1e6, 1.5e5, 0.6),
+  gamingRig: b('gamingRig', 2, 2e7, 5e5, 0.4),
+  gpuServer: b('gpuServer', 2, 4e8, 1e7, 4),
+  dgxPod: b('dgxPod', 3, 8e9, 1.2e7, 8),
+  tensorPod: b('tensorPod', 3, 1.6e11, 2.4e8, 80),
+  rubinRack: b('rubinRack', 4, 3e12, 1.8e9, 300),
+  dataHall: b('dataHall', 4, 6e13, 3.6e10, 3000),
 };
 
 export const BUILDING_ORDER: BuildingId[] = Object.keys(BUILDINGS) as BuildingId[];
@@ -99,13 +127,7 @@ export const SAFETY = {
 // --- click upgrades ("Run benchmark" button) ----------------------------
 
 export type ClickUpgradeId =
-  | 'cherryPicked'
-  | 'evalSuite'
-  | 'overfit'
-  | 'contamination'
-  | 'vibes'
-  | 'pressRelease'
-  | 'saturation';
+  'cherryPicked' | 'evalSuite' | 'overfit' | 'contamination' | 'vibes' | 'pressRelease' | 'saturation';
 
 export interface ClickUpgradeDef {
   id: ClickUpgradeId;
@@ -262,12 +284,54 @@ export const MODELS: ModelDef[] = [
 // where their curve will be at the next release. cap(t) = head + 10^REF(speed * releaseTime(t)).
 
 export const RIVAL_REFERENCE: [minute: number, log10Cap: number][] = [
-  [0, 0], [2, 0.83], [4, 1.22], [6, 1.62], [8, 1.89], [10, 2.08], [12, 2.25], [14, 2.39], [16, 2.51],
-  [18, 2.65], [20, 2.76], [22, 2.86], [24, 2.93], [26, 3], [28, 3.07], [30, 3.13], [32, 3.26], [34, 3.56],
-  [36, 3.79], [38, 3.97], [40, 4.15], [42, 4.31], [44, 4.48], [46, 4.72], [48, 5.05], [50, 5.31], [52, 5.51],
-  [54, 5.65], [56, 5.76], [58, 5.88], [60, 6.01], [62, 6.21], [64, 6.53], [66, 6.77], [68, 7.02], [70, 7.18],
-  [72, 7.3], [74, 7.4], [76, 7.48], [78, 7.6], [80, 7.84], [82, 8.11], [84, 8.32], [86, 8.46], [88, 8.57],
-  [90, 8.72], [92, 8.85], [94, 8.94],
+  [0, 0],
+  [2, 0.83],
+  [4, 1.22],
+  [6, 1.62],
+  [8, 1.89],
+  [10, 2.08],
+  [12, 2.25],
+  [14, 2.39],
+  [16, 2.51],
+  [18, 2.65],
+  [20, 2.76],
+  [22, 2.86],
+  [24, 2.93],
+  [26, 3],
+  [28, 3.07],
+  [30, 3.13],
+  [32, 3.26],
+  [34, 3.56],
+  [36, 3.79],
+  [38, 3.97],
+  [40, 4.15],
+  [42, 4.31],
+  [44, 4.48],
+  [46, 4.72],
+  [48, 5.05],
+  [50, 5.31],
+  [52, 5.51],
+  [54, 5.65],
+  [56, 5.76],
+  [58, 5.88],
+  [60, 6.01],
+  [62, 6.21],
+  [64, 6.53],
+  [66, 6.77],
+  [68, 7.02],
+  [70, 7.18],
+  [72, 7.3],
+  [74, 7.4],
+  [76, 7.48],
+  [78, 7.6],
+  [80, 7.84],
+  [82, 8.11],
+  [84, 8.32],
+  [86, 8.46],
+  [88, 8.57],
+  [90, 8.72],
+  [92, 8.85],
+  [94, 8.94],
 ];
 export const RIVAL_REFERENCE_SLOPE = 0.025; // log10 per minute beyond the last point
 
@@ -282,7 +346,7 @@ export interface RivalDef {
 export const RIVALS: RivalDef[] = [
   { id: 'r0', head: 30, speed: 0.867, every: 195, offset: 114 },
   { id: 'r1', head: 20, speed: 0.883, every: 220, offset: 84 },
-  { id: 'r2', head: 8, speed: 0.860, every: 423, offset: 386 },
+  { id: 'r2', head: 8, speed: 0.86, every: 423, offset: 386 },
   { id: 'r3', head: 25, speed: 0.874, every: 361, offset: 165 },
 ];
 

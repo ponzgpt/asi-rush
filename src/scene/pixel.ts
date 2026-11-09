@@ -37,6 +37,111 @@ export class Painter {
   text(x: number, y: number, str: string, color: string) {
     drawText((px, py) => this.px(px, py, color), x, y, str);
   }
+
+  // --- SCUMM-style shapes: crooked polygons, dark outlines, dithered gradients ---
+
+  /** Fill a polygon on the pixel grid (scanline, even-odd), with no anti-aliasing. */
+  poly(pts: Pt[], color: string | ((x: number, y: number) => string)) {
+    const ys = pts.map((p) => p[1]);
+    const y0 = Math.floor(Math.min(...ys));
+    const y1 = Math.ceil(Math.max(...ys));
+    for (let y = y0; y <= y1; y++) {
+      const cy = y + 0.5;
+      const xs: number[] = [];
+      for (let i = 0; i < pts.length; i++) {
+        const a = pts[i] as Pt;
+        const b = pts[(i + 1) % pts.length] as Pt;
+        if (a[1] <= cy !== b[1] <= cy) xs.push(a[0] + ((cy - a[1]) * (b[0] - a[0])) / (b[1] - a[1]));
+      }
+      xs.sort((m, n) => m - n);
+      for (let i = 0; i + 1 < xs.length; i += 2) {
+        const xa = Math.round(xs[i] as number);
+        const xb = Math.round(xs[i + 1] as number);
+        if (typeof color === 'string') this.rect(xa, y, xb - xa, 1, color);
+        else for (let x = xa; x < xb; x++) this.px(x, y, color(x, y));
+      }
+    }
+  }
+
+  /** 1px line (Bresenham). */
+  line(x0: number, y0: number, x1: number, y1: number, color: string) {
+    x0 = Math.round(x0);
+    y0 = Math.round(y0);
+    x1 = Math.round(x1);
+    y1 = Math.round(y1);
+    const dx = Math.abs(x1 - x0);
+    const dy = -Math.abs(y1 - y0);
+    const sx = x0 < x1 ? 1 : -1;
+    const sy = y0 < y1 ? 1 : -1;
+    let err = dx + dy;
+    for (;;) {
+      this.px(x0, y0, color);
+      if (x0 === x1 && y0 === y1) break;
+      const e2 = 2 * err;
+      if (e2 >= dy) {
+        err += dy;
+        x0 += sx;
+      }
+      if (e2 <= dx) {
+        err += dx;
+        y0 += sy;
+      }
+    }
+  }
+
+  outline(pts: Pt[], color: string) {
+    for (let i = 0; i < pts.length; i++) {
+      const a = pts[i] as Pt;
+      const b = pts[(i + 1) % pts.length] as Pt;
+      this.line(a[0], a[1], b[0], b[1], color);
+    }
+  }
+
+  /** A cartoon shape: filled, then outlined in the ink color. */
+  shape(pts: Pt[], fill: string | ((x: number, y: number) => string), ink: string = INK) {
+    this.poly(pts, fill);
+    this.outline(pts, ink);
+  }
+
+  ellipse(
+    cx: number,
+    cy: number,
+    rx: number,
+    ry: number,
+    color: string | ((x: number, y: number) => string),
+  ) {
+    for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) {
+      const k = 1 - ((y + 0.5 - cy) / ry) ** 2;
+      if (k < 0) continue;
+      const half = rx * Math.sqrt(k);
+      const xa = Math.round(cx - half);
+      const xb = Math.round(cx + half);
+      if (typeof color === 'string') this.rect(xa, y, xb - xa, 1, color);
+      else for (let x = xa; x < xb; x++) this.px(x, y, color(x, y));
+    }
+  }
+}
+
+export type Pt = [x: number, y: number];
+
+/** The dark purple-brown outline every object gets, MI2/DOTT style. */
+export const INK = '#1c1020';
+
+const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+
+/**
+ * Ordered-dither gradient: returns a color function for `poly`/`ellipse` that blends through `stops` along
+ * the vertical (or horizontal) span from a to b. Gives the painted, banded skies and walls of the era.
+ */
+export function gradient(stops: string[], a: number, b: number, axis: 'y' | 'x' = 'y') {
+  return (x: number, y: number) => {
+    const v = axis === 'y' ? y : x;
+    const k = Math.min(0.9999, Math.max(0, (v - a) / Math.max(1, b - a))) * (stops.length - 1);
+    const i = Math.floor(k);
+    const frac = k - i;
+    const threshold = ((BAYER[(y % 4) * 4 + (x % 4)] ?? 0) + 0.5) / 16;
+    return (frac > threshold ? stops[i + 1] : stops[i]) ?? stops[0] ?? INK;
+  };
 }
 
 export function makeCanvas(w: number, h: number, paint: (p: Painter) => void): HTMLCanvasElement {

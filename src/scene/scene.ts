@@ -3,13 +3,15 @@ import { AdvancedBloomFilter } from 'pixi-filters';
 import { Application, Container, Graphics, TextureStyle } from 'pixi.js';
 import { on } from '../state/events.ts';
 import type { State } from '../sim/sim.ts';
-import { createCampus } from './campus.ts';
-import { createGarage } from './garage.ts';
+import { createEra1 } from './era1.ts';
+import { createEra2 } from './era2.ts';
+import { createEra3 } from './era3.ts';
+import { createEra4 } from './era4.ts';
+import { createEra5 } from './era5.ts';
 import { C, hex } from './palette.ts';
 import { H, W, type SceneModule } from './types.ts';
-import { createWarehouse } from './warehouse.ts';
 
-const FACTORIES = [createGarage, createWarehouse, createCampus];
+const FACTORIES = [createEra1, createEra2, createEra3, createEra4, createEra5];
 
 export async function mountScene(host: HTMLElement, getState: () => State, getLab: () => string) {
   TextureStyle.defaultOptions.scaleMode = 'nearest';
@@ -62,7 +64,7 @@ export async function mountScene(host: HTMLElement, getState: () => State, getLa
   const sceneFor = (era: number) => {
     let m = scenes.get(era);
     if (!m) {
-      m = (FACTORIES[era] ?? createGarage)(world, getLab);
+      m = (FACTORIES[era] ?? createEra1)(world, getLab);
       scenes.set(era, m);
     }
     return m;

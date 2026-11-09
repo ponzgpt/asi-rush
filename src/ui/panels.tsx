@@ -30,11 +30,12 @@ import {
   rivalEta,
   throttle,
   trust,
+  yearOf,
   type BuyCount,
   type State,
 } from '../sim/sim.ts';
 import { icons } from '../scene/sprites.ts';
-import { dispatch, displayLab, game, log, modelName } from '../state/store.ts';
+import { dispatch, displayLab, game, log, modelName, rivalName } from '../state/store.ts';
 import { fmt, fmtClock, fmtDuration, fmtInt, fmtPct, fmtPower } from './format.ts';
 import { t, tk, type Key } from './i18n.ts';
 import { OBJECTIVES, currentObjective } from './objectives.ts';
@@ -101,7 +102,7 @@ export function GoalBar() {
   const rival = s.roundClosed || s.outcome ? null : rivalEta(s.time, era.goal);
   const mine = capEta(era.goal, s);
   const losing = rival !== null && rival < 600 && (mine === null || rival < mine);
-  const lab = tk(`rival.${top.rival.id}`);
+  const lab = rivalName(s.era, top.rival.id);
   return (
     <section class="round" data-coach="goal" title={t('roundHint', { n: fmtInt(era.goal), round })}>
       <div class="round-era">
@@ -129,9 +130,9 @@ export function GoalBar() {
           </span>
         </div>
       </div>
-      <div class="round-clock" title="T+">
-        <span class="round-kicker">T+</span>
-        <span class="clock-num">{fmtClock(s.time)}</span>
+      <div class="round-clock" title={`T+${fmtClock(s.time)}`}>
+        <span class="round-kicker">T+{fmtClock(s.time)}</span>
+        <span class="clock-num year">{yearOf(s)}</span>
       </div>
     </section>
   );
@@ -650,8 +651,8 @@ export function Leaderboard() {
     { id: 'you', name: displayLab(), desc: t('you'), cap: me, me: true },
     ...RIVALS.map((r) => ({
       id: r.id,
-      name: tk(`rival.${r.id}`),
-      desc: tk(`rival.${r.id}.d`),
+      name: rivalName(s.era, r.id),
+      desc: tk(`rival.${s.era}.${r.id}.d`),
       cap: rivalCap(r, s.time),
       me: false,
     })),

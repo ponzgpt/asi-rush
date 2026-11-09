@@ -1,5 +1,5 @@
 // Tutorial objectives: a linear checklist that teaches the loop, derived purely from state.
-// It ends when the player closes the Series A; after that the coach only shows contextual tips.
+// It ends when the player reaches the first milestone; after that the coach only shows contextual tips.
 import { ERAS } from '../data/economy.ts';
 import { playerRank, type State } from '../sim/sim.ts';
 import type { Key } from './i18n.ts';

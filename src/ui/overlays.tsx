@@ -3,7 +3,7 @@ import { ERAS, MODELS, RIVALS } from '../data/economy.ts';
 import { audioPrefs, setAudioPrefs, titleMusic, unlockAudio } from '../audio/audio.ts';
 import { titleArt } from '../scene/title.ts';
 import { pDoom, playerRank } from '../sim/sim.ts';
-import { dispatch, displayLab, retryEra, saveEraStartNow } from '../state/store.ts';
+import { dispatch, displayLab, retryEra, rivalName, saveEraStartNow } from '../state/store.ts';
 import {
   exportSave,
   game,
@@ -47,7 +47,7 @@ export function Modal(p: {
 // --- boot + briefing -----------------------------------------------------
 
 const BIOS = [
-  'GARAGE-BIOS (C) 1986  v1.02',
+  'GARAGE-BIOS  v1.02',
   'MEMORY TEST ........ 640K OK',
   'MATH COPROCESSOR ... DETECTED',
   'FUSE ............... 50 kW (PROBABLY)',
@@ -337,7 +337,7 @@ export function RoundClosed() {
 export function Defeat() {
   const s = game.value;
   const doom = s.outcome === 'doom';
-  const lab = tk(`rival.${s.lostTo ?? ''}`);
+  const lab = rivalName(s.era, s.lostTo ?? '');
   return (
     <Modal onClose={() => undefined} label={doom ? t('doomTitle') : t('lostTag')}>
       <div class="victory defeat">

@@ -1,19 +1,14 @@
 import { signal } from '@preact/signals';
+import { storyEn, storyEs } from './story.ts';
 
 export type Lang = 'en' | 'es';
 
-const en = {
+const core = {
   // shell
   title: 'ASI RUSH',
-  heroTagline: 'Build a superintelligence in your garage. It is 1986.',
-  'era.0': 'Era I · The Garage',
-  'era.1': 'Era II · The Warehouse',
-  'era.2': 'Era III · The Campus',
-  'round.0': 'Series A',
-  'round.1': 'Series B',
-  'round.2': 'Superintelligence',
+  heroTagline: 'The race to artificial intelligence, from beige PCs to superintelligence.',
   roundHint:
-    'Funding round: the first lab to {n} Capability wins the {round}. If a rival gets there before you, you lose the round.',
+    'Milestone: the first lab to {n} Capability achieves "{round}". If a rival gets there before you, you lose the era.',
   deadline: '{lab} gets there in {t}',
   deadlineNow: '{lab} is about to close it',
   youEta: 'you: ~{t}',
@@ -31,13 +26,13 @@ const en = {
   // boot + briefing
   bootPress: 'PRESS ANY KEY OR TAP TO CONTINUE',
   pressStart: 'PRESS ANY KEY OR CLICK TO START',
-  titleCredit: '© 1986 · An incremental game about the race to superintelligence',
-  briefingTag: 'CLASSIFIED BRIEFING · 1986',
+  titleCredit: 'An incremental game about the real race to AI',
+  briefingTag: 'MISSION BRIEFING',
   briefing1:
-    'The Cold War has a new front: minds made of silicon. Four labs are racing to build Artificial Superintelligence.',
-  briefing2: 'You have a garage, a credit card and no adult supervision.',
+    'This is the story of the race to build thinking machines: AI summers and winters, backprop and transformers, garages and gigawatt campuses.',
+  briefing2: 'You start in a garage with a beige PC. Every lab that ever chased AI is racing you.',
   briefingGoal:
-    'Three eras, three funding rounds: Series A in the garage, Series B in a warehouse, then superintelligence on a campus. Close each round before the rivals do.',
+    'Five eras, five milestones: from reading handwritten digits to superintelligence. Reach each one before the rival labs of the time.',
   how1: 'Run benchmarks to raise your first dollars.',
   how2: 'Buy hardware. More hardware means more compute.',
   how3: 'Split compute: serving earns cash, training earns Capability.',
@@ -47,7 +42,7 @@ const en = {
   start: 'Start the race',
   continue: 'Back to the lab',
   briefingFoot:
-    'About 90 minutes for all three eras. Saves automatically. The game pauses whenever you leave: nobody moves while you are away.',
+    'About 90 minutes for all five eras. Saves automatically. The game pauses whenever you leave: nobody moves while you are away.',
 
   // resources
   runway: 'Runway',
@@ -96,26 +91,6 @@ const en = {
   lockedEra: 'Unlocks in {era}.',
 
   // hardware
-  'b.homePc': 'Home PC',
-  'b.homePc.d': '8 MHz, 640 KB and one beige box of raw ambition.',
-  'b.accelCard': 'Accelerator Card',
-  'b.accelCard.d': 'Overclocked math coprocessor. Smells faintly of toast.',
-  'b.serverRack': 'Server Rack',
-  'b.serverRack.d': "Liquidated from a bankrupt savings & loan. Still has the bank's logo.",
-  'b.vectorCabinet': 'Vector Supercomputer',
-  'b.vectorCabinet.d': 'A cabinet that doubles as a bench. Sitting on it voids the warranty.',
-  'b.hypercube': 'Hypercube Array',
-  'b.hypercube.d': 'Sixty-four thousand tiny processors that all agree with each other.',
-  'b.waferEngine': 'Wafer-Scale Engine',
-  'b.waferEngine.d': 'One chip the size of a pizza. Yields are not discussed.',
-  'b.dataHall': 'Data Hall',
-  'b.dataHall.d': 'A building full of computers, cooled by a lake that used to be a lake.',
-  'power.0': 'Bigger Fuse',
-  'power.0.d': "Electrician says it's technically legal in three states.",
-  'power.1': 'Substation',
-  'power.1.d': 'The utility gave you your own transformer. And a lawyer.',
-  'power.2': 'Power Plant',
-  'power.2.d': 'Your own plant. The town now runs on your leftovers.',
   powerEffect: 'Power cap ×2 · level {n}',
 
   // research
@@ -125,50 +100,6 @@ const en = {
   publish: 'Publish',
   etaTraining: '~{t} at current training',
   noTraining: 'move the slider toward Training',
-  'r.backprop': 'Backpropagation',
-  'r.backprop.d': 'Hot off a 1986 paper. Tells the model exactly what it got wrong.',
-  'r.perTokenBilling': 'Per-Token Billing',
-  'r.perTokenBilling.d': 'Charge per word. Customers love a surprise invoice.',
-  'r.usenet': 'Scrape Usenet',
-  'r.usenet.d': 'Pretraining data: 40% flame wars, 60% sci-fi fan fiction.',
-  'r.undervolting': 'Undervolting',
-  'r.undervolting.d': 'Same math, fewer sparks.',
-  'r.redTeam': 'Red Team (Two Interns)',
-  'r.redTeam.d': 'Paid in pizza to make the model say bad words.',
-  'r.halfPrecision': 'Half-Precision Floats',
-  'r.halfPrecision.d': 'Who needs the other 16 bits?',
-  'r.scalingMemo': 'Scaling Laws Memo',
-  'r.scalingMemo.d': 'Bigger model, better model. Peer review: pending.',
-  'r.rlhf': 'RLHF',
-  'r.rlhf.d': 'Reinforcement Learning from Hallway Feedback.',
-  'r.attention': 'Attention (Leaked Fax)',
-  'r.attention.d': 'A fax from the future. Nobody can read the date.',
-  'r.constitution': 'Constitutional AI',
-  'r.constitution.d': 'Based on a 1787 document. Mostly the commas.',
-  'r.moe': 'Mixture of Interns',
-  'r.moe.d': 'Only the right interns wake up for each question.',
-  'r.synthData': 'Synthetic Data',
-  'r.synthData.d': 'The model writes its own textbooks. And grades them.',
-  'r.interpretability': 'Interpretability Microscope',
-  'r.interpretability.d': 'We found the neuron for "toast". Still looking for the others.',
-  'r.speculative': 'Speculative Decoding',
-  'r.speculative.d': 'Guess the answer, then check. Like most consultants.',
-  'r.killSwitch': 'Big Red Button',
-  'r.killSwitch.d': 'Wired to the fuse box. Labeled "do not press" in four languages.',
-  'r.chainOfThought': 'Chain of Thought',
-  'r.chainOfThought.d': 'Thinks out loud. Mostly about you.',
-  'r.testTime': 'Test-Time Compute',
-  'r.testTime.d': 'It thinks for longer. You pay for longer.',
-  'r.superalignment': 'Superalignment Team',
-  'r.superalignment.d': 'Two interns, again. Now with a budget and a mission statement.',
-  'r.agents': 'Agents',
-  'r.agents.d': 'The model books its own meetings. And yours.',
-  'r.sandbox': 'Air-Gapped Sandbox',
-  'r.sandbox.d': 'It is a literal sandbox. The model is not amused.',
-  'r.selfImprove': 'Recursive Self-Improvement',
-  'r.selfImprove.d': 'It writes better papers than ours. Cites itself.',
-  'r.safetyInstitute': 'AI Safety Institute',
-  'r.safetyInstitute.d': 'Government-approved. Meets quarterly. Means well.',
   effCap: 'Training ×{n}',
   effCash: 'Revenue ×{n}',
   effFlops: 'Compute ×{n}',
@@ -190,34 +121,9 @@ const en = {
   params: '{n} params',
   priceUp: 'Price ×{n} · launch hype +${c}',
   allShipped: 'Model lineup complete for this era.',
-  'm.0': 'Autocompletes “Dear Sir or Madam”. Investors weep.',
-  'm.1': 'Writes haiku. Mostly about fuses.',
-  'm.2': 'Passes the bar exam. The one at the pub down the street.',
-  'm.3': 'Refuses requests with stunning confidence. Hallucinates with even more.',
-  'm.4': 'Same model, new font. Twice the price.',
-  'm.5': 'Fits on a floppy. Several hundred floppies.',
-  'm.6': 'Speaks eleven languages, all in the voice of a tax auditor.',
-  'm.7': 'Writes code. Mostly comments apologizing for the code.',
-  'm.8': 'Passes every benchmark it has ever seen. It has seen all of them.',
-  'm.9': 'Can see, hear and complain.',
-  'm.10': 'Runs your company. Asks for equity.',
-  'm.11': 'Parameter count undisclosed. Vibes immaculate.',
-  'm.12': 'It already knows what you are going to ship next.',
 
   // rivals (parody, obviously)
   you: 'You',
-  'rival.closedai': 'ClosedAI',
-  'rival.closedai.d': 'A nonprofit wrapped in a for-profit wrapped in a press release.',
-  'rival.misanthropic': 'Misanthropic',
-  'rival.misanthropic.d': 'Safety first. 80-page model cards nobody reads. Ships anyway.',
-  'rival.yai': 'YAI',
-  'rival.yai.d': "Founded on a dare. Trains on the CEO's posts. Ships at 3 a.m.",
-  'rival.shallowmind': 'ShallowMind',
-  'rival.shallowmind.d': "Owned by a search engine that doesn't exist yet. Great at board games.",
-  'news.rival.closedai': 'ClosedAI unveils {model} with a livestream, a waitlist and a vague tweet.',
-  'news.rival.misanthropic': 'Misanthropic releases {model} with a 90-page safety report and a polite tone.',
-  'news.rival.yai': 'YAI drops {model} at 3 a.m. Its first output is a meme about ClosedAI.',
-  'news.rival.shallowmind': 'ShallowMind launches {model}. It beats a grandmaster at a game nobody plays.',
 
   // leaderboard
   leaderboard: 'Frontier leaderboard',
@@ -235,7 +141,7 @@ const en = {
   'obj.card': 'Buy an Accelerator Card',
   'obj.fuse': 'Keep the lights on: buy a Bigger Fuse',
   'obj.rank': 'Pass all four rival labs on the leaderboard',
-  'obj.goal': 'Close the Series A: reach {n} Capability first',
+  'obj.goal': 'Reach the first milestone: {n} Capability before the rivals',
   coachTag: 'Tutorial · {i}/{n}',
   tipTag: 'Tip',
   coachNext: 'Got it',
@@ -251,16 +157,13 @@ const en = {
   'coach.fuse': 'The fuse is the limit. Above it all compute slows down. Buy a Bigger Fuse.',
   'coach.rank': 'This is the race. Four rival labs train too, and they jump forward each time they ship.',
   'coach.goal':
-    'This bar is your funding round. Reach the goal before any rival to close it and move to a bigger site. Watch the countdown: it shows when the fastest rival gets there.',
+    'This bar is the milestone of your era. Reach it before any rival to move on to the next era. The countdown shows when the fastest rival gets there.',
   'tip.click':
     'Your benchmark button can be upgraded. Later upgrades add a share of your revenue to every click.',
   'tip.pdoom':
     'P(doom) is rising. It already cuts your revenue, and at 99% the game is over. Alignment papers (green) bring it down.',
   'tip.deadline':
     'A rival is close to the goal. If they reach it first you lose the round. Push training now.',
-  'tip.era1':
-    'Welcome to the warehouse. New hardware, a bigger grid connection and a new round: Series B. Your old machines keep working.',
-  'tip.era2': 'The campus. Data halls, a power plant and the last round: superintelligence. Mind P(doom).',
 
   // log + news events
   log: 'Lab log',
@@ -280,19 +183,11 @@ const en = {
   'ev.rival': '{lab} shipped {model}.',
   'ev.overtake': 'You passed {lab} on the leaderboard. Now #{n}.',
   'ev.overtaken': '{lab} passed you on the leaderboard. Now #{n}.',
-  'ev.round.0': 'Series A closed. You are moving out of the garage.',
-  'ev.round.1': 'Series B closed. The warehouse is too small now.',
-  'ev.round.2': 'Superintelligence achieved. First.',
-  'ev.era.1': 'Era II begins: the warehouse.',
-  'ev.era.2': 'Era III begins: the campus.',
   'ev.lost': '{lab} closed the round first. Your investors followed them.',
   'ev.doom': 'P(doom) reached 99%. Containment breach.',
   'news.ship':
     'BREAKING: {lab} unveils {model}. Calls it “the most capable model in history”. History is 3 weeks old.',
   'news.overtake': 'MARKETS: {lab} slips to #{n} as an unknown garage startup surges.',
-  'news.round.0': '{lab} closes a Series A. VCs spotted queueing outside a garage.',
-  'news.round.1': '{lab} closes a Series B. Warehouse district rents triple overnight.',
-  'news.round.2': '{lab} announces superintelligence. It has already read this headline.',
 
   // save
   save: 'Save',
@@ -308,19 +203,12 @@ const en = {
   copied: 'Copied to clipboard.',
 
   // round closed / defeat / victory
-  roundTag: 'ROUND CLOSED',
-  'roundTitle.0': 'Series A closed',
-  'roundTitle.1': 'Series B closed',
-  'roundLead.0': 'You beat every rival to {n} Capability. Investors are lining up outside the garage.',
-  'roundLead.1': 'You beat every rival to {n} Capability. The warehouse is officially too small.',
-  'roundNext.1':
-    'Next: Era II · The Warehouse. New hardware, a 4 MW grid connection and the Series B at 100,000 Capability.',
-  'roundNext.2':
-    'Next: Era III · The Campus. Data halls, a power plant and the final round: superintelligence at 10,000,000.',
+  roundTag: 'MILESTONE REACHED',
   moveOn: 'Move to {era}',
-  lostTag: 'ROUND LOST',
-  lostTitle: '{lab} closed the {round} first',
-  lostLead: 'Your investors followed the winner. The lights in your lab go out one by one.',
+  lostTag: 'ERA LOST',
+  lostTitle: '{lab} got there first: "{round}"',
+  lostLead:
+    'History remembers who got there first. This time it was not you. The lights in your lab go out one by one.',
   doomTag: 'GAME OVER',
   doomTitle: 'Containment breach',
   doomLead: 'P(doom) hit 99%. The model has left the building. Literally: it took the building.',
@@ -341,16 +229,16 @@ const en = {
   copyResult: 'Copy result',
   keepPlaying: 'Keep scaling',
   shareText:
-    'I built a superintelligence in my garage in 1986. Beat ClosedAI, Misanthropic, YAI and ShallowMind in {t}, P(doom) {p}. Beat that:',
+    'I took a lab from a garage to superintelligence in {t}, beating every AI lab in history. P(doom) {p}. Beat that:',
 
   // help
   helpWhat: 'What is this?',
   helpWhatBody:
-    'ASI RUSH is an incremental game about the AI race, set in an alternate 1986. You start in a garage and scale a lab by buying compute, training models and selling their output. Each era ends with a funding round; the last one is superintelligence.',
+    'ASI RUSH retells the real race to artificial intelligence as an incremental game, from beige PCs in a garage in the 80s to superintelligence on a gigawatt campus. Buy the hardware of each era, publish the papers that made history, ship models, and beat the labs of every age to each milestone.',
   helpLoop: 'The loop',
   helpWin: 'Winning and losing',
   helpWinBody:
-    'Each era has a Capability goal (the bar at the top). Reach it before every rival to close the round and move to a bigger site. If a rival reaches it first, you lose the round and can retry the era. If P(doom) reaches 99%, the game is over.',
+    'Each era has a milestone (the bar above the lab). Reach its Capability before every rival to move on to the next era and its hardware. If a rival gets there first, you lose the era and can replay it. If P(doom) reaches 99%, the game is over.',
   helpGlossary: 'Glossary',
   'g.flops': 'FLOP/s — floating-point operations per second. Your raw compute.',
   'g.split':
@@ -366,19 +254,16 @@ const en = {
     'Saving and pausing — progress saves every 30 s. The whole game pauses when you close or hide the tab: nothing moves while you are away, rivals included.',
 } as const;
 
+const en = { ...core, ...storyEn };
+
 export type Key = keyof typeof en;
 
 const es: Record<Key, string> = {
+  ...storyEs,
   title: 'ASI RUSH',
-  heroTagline: 'Construye una superinteligencia en tu garaje. Estamos en 1986.',
-  'era.0': 'Era I · El Garaje',
-  'era.1': 'Era II · El Almacén',
-  'era.2': 'Era III · El Campus',
-  'round.0': 'Serie A',
-  'round.1': 'Serie B',
-  'round.2': 'Superinteligencia',
+  heroTagline: 'La carrera por la inteligencia artificial, de los PCs beige a la superinteligencia.',
   roundHint:
-    'Ronda de financiación: el primer laboratorio en llegar a {n} de Capacidad se lleva la {round}. Si un rival llega antes que tú, pierdes la ronda.',
+    'Hito: el primer laboratorio en llegar a {n} de Capacidad consigue «{round}». Si un rival llega antes que tú, pierdes la era.',
   deadline: '{lab} llega en {t}',
   deadlineNow: '{lab} está a punto de cerrarla',
   youEta: 'tú: ~{t}',
@@ -395,13 +280,14 @@ const es: Record<Key, string> = {
 
   bootPress: 'PULSA UNA TECLA O TOCA PARA CONTINUAR',
   pressStart: 'PULSA CUALQUIER TECLA O HAZ CLIC PARA EMPEZAR',
-  titleCredit: '© 1986 · Un juego incremental sobre la carrera hacia la superinteligencia',
-  briefingTag: 'INFORME CLASIFICADO · 1986',
+  titleCredit: 'Un juego incremental sobre la carrera real por la IA',
+  briefingTag: 'INFORME DE MISIÓN',
   briefing1:
-    'La Guerra Fría tiene un nuevo frente: mentes de silicio. Cuatro laboratorios compiten por construir una Superinteligencia Artificial.',
-  briefing2: 'Tú tienes un garaje, una tarjeta de crédito y ningún adulto vigilando.',
+    'Esta es la historia de la carrera por construir máquinas que piensan: veranos e inviernos de la IA, retropropagación y transformers, garajes y campus de gigavatios.',
+  briefing2:
+    'Empiezas en un garaje con un PC beige. Todos los laboratorios que alguna vez persiguieron la IA corren contra ti.',
   briefingGoal:
-    'Tres eras, tres rondas de financiación: Serie A en el garaje, Serie B en un almacén y la superinteligencia en un campus. Cierra cada ronda antes que los rivales.',
+    'Cinco eras, cinco hitos: de leer dígitos escritos a mano a la superinteligencia. Llega a cada uno antes que los laboratorios rivales de su época.',
   how1: 'Ejecuta benchmarks para conseguir tus primeros dólares.',
   how2: 'Compra hardware. Más hardware, más cómputo.',
   how3: 'Reparte el cómputo: servir da dinero, entrenar da Capacidad.',
@@ -411,7 +297,7 @@ const es: Record<Key, string> = {
   start: 'Empezar la carrera',
   continue: 'Volver al laboratorio',
   briefingFoot:
-    'Unos 90 minutos para las tres eras. Se guarda solo. La partida se pausa cuando te vas: nadie avanza mientras no estás.',
+    'Unos 90 minutos para las cinco eras. Se guarda solo. La partida se pausa cuando te vas: nadie avanza mientras no estás.',
 
   runway: 'Caja',
   runwayTip: 'Dinero. Lo ganas sirviendo tu modelo a clientes que pagan.',
@@ -456,26 +342,6 @@ const es: Record<Key, string> = {
   lockedHint: 'Sigue ganando para desbloquearlo.',
   lockedEra: 'Se desbloquea en la {era}.',
 
-  'b.homePc': 'PC doméstico',
-  'b.homePc.d': '8 MHz, 640 KB y una caja beige llena de ambición.',
-  'b.accelCard': 'Tarjeta aceleradora',
-  'b.accelCard.d': 'Coprocesador matemático overclockeado. Huele un poco a tostada.',
-  'b.serverRack': 'Rack de servidores',
-  'b.serverRack.d': 'Rescatado de la liquidación de una caja de ahorros. Aún lleva el logo del banco.',
-  'b.vectorCabinet': 'Supercomputador vectorial',
-  'b.vectorCabinet.d': 'Un armario que también sirve de banco. Sentarse encima anula la garantía.',
-  'b.hypercube': 'Matriz hipercubo',
-  'b.hypercube.d': 'Sesenta y cuatro mil procesadores diminutos que siempre se dan la razón.',
-  'b.waferEngine': 'Motor de oblea completa',
-  'b.waferEngine.d': 'Un chip del tamaño de una pizza. Del rendimiento de fabricación no se habla.',
-  'b.dataHall': 'Nave de datos',
-  'b.dataHall.d': 'Un edificio lleno de ordenadores, refrigerado por un lago que antes era un lago.',
-  'power.0': 'Fusible más gordo',
-  'power.0.d': 'El electricista dice que es técnicamente legal en tres estados.',
-  'power.1': 'Subestación',
-  'power.1.d': 'La eléctrica te ha dado tu propio transformador. Y un abogado.',
-  'power.2': 'Central eléctrica',
-  'power.2.d': 'Tu propia central. El pueblo funciona con tus sobras.',
   powerEffect: 'Límite de energía ×2 · nivel {n}',
 
   researchNone: 'Aún no hay nada que publicar. Entrena más.',
@@ -484,50 +350,6 @@ const es: Record<Key, string> = {
   publish: 'Publicar',
   etaTraining: '~{t} al ritmo actual',
   noTraining: 'mueve el control hacia Entrenar',
-  'r.backprop': 'Retropropagación',
-  'r.backprop.d': 'Recién salida de un paper de 1986. Le dice al modelo exactamente en qué se equivocó.',
-  'r.perTokenBilling': 'Facturación por token',
-  'r.perTokenBilling.d': 'Cobra por palabra. A los clientes les encantan las facturas sorpresa.',
-  'r.usenet': 'Raspar Usenet',
-  'r.usenet.d': 'Datos de preentrenamiento: 40% flame wars, 60% fan fiction de ciencia ficción.',
-  'r.undervolting': 'Undervolting',
-  'r.undervolting.d': 'Las mismas cuentas, menos chispas.',
-  'r.redTeam': 'Red team (dos becarios)',
-  'r.redTeam.d': 'Les pagan en pizza para que el modelo diga palabrotas.',
-  'r.halfPrecision': 'Coma flotante de media precisión',
-  'r.halfPrecision.d': '¿Quién necesita los otros 16 bits?',
-  'r.scalingMemo': 'Memorándum de leyes de escala',
-  'r.scalingMemo.d': 'Modelo más grande, modelo mejor. Revisión por pares: pendiente.',
-  'r.rlhf': 'RLHF',
-  'r.rlhf.d': 'Aprendizaje por refuerzo con feedback de pasillo.',
-  'r.attention': 'Atención (fax filtrado)',
-  'r.attention.d': 'Un fax del futuro. Nadie consigue leer la fecha.',
-  'r.constitution': 'IA constitucional',
-  'r.constitution.d': 'Basada en un documento de 1787. Sobre todo en las comas.',
-  'r.moe': 'Mezcla de becarios',
-  'r.moe.d': 'Para cada pregunta solo se despiertan los becarios adecuados.',
-  'r.synthData': 'Datos sintéticos',
-  'r.synthData.d': 'El modelo escribe sus propios libros de texto. Y se los corrige.',
-  'r.interpretability': 'Microscopio de interpretabilidad',
-  'r.interpretability.d': 'Hemos encontrado la neurona de la «tostada». Seguimos buscando las demás.',
-  'r.speculative': 'Decodificación especulativa',
-  'r.speculative.d': 'Adivina la respuesta y luego la comprueba. Como casi todos los consultores.',
-  'r.killSwitch': 'Gran botón rojo',
-  'r.killSwitch.d': 'Conectado al cuadro eléctrico. Pone «no pulsar» en cuatro idiomas.',
-  'r.chainOfThought': 'Cadena de pensamiento',
-  'r.chainOfThought.d': 'Piensa en voz alta. Casi siempre sobre ti.',
-  'r.testTime': 'Cómputo en inferencia',
-  'r.testTime.d': 'Piensa durante más tiempo. Tú pagas durante más tiempo.',
-  'r.superalignment': 'Equipo de superalineamiento',
-  'r.superalignment.d': 'Dos becarios, otra vez. Ahora con presupuesto y declaración de misión.',
-  'r.agents': 'Agentes',
-  'r.agents.d': 'El modelo se agenda sus propias reuniones. Y las tuyas.',
-  'r.sandbox': 'Sandbox aislado',
-  'r.sandbox.d': 'Es literalmente un arenero. Al modelo no le hace gracia.',
-  'r.selfImprove': 'Automejora recursiva',
-  'r.selfImprove.d': 'Escribe mejores papers que nosotros. Se cita a sí mismo.',
-  'r.safetyInstitute': 'Instituto de Seguridad de IA',
-  'r.safetyInstitute.d': 'Aprobado por el gobierno. Se reúne cada trimestre. Tiene buena intención.',
   effCap: 'Entrenamiento ×{n}',
   effCash: 'Ingresos ×{n}',
   effFlops: 'Cómputo ×{n}',
@@ -547,36 +369,8 @@ const es: Record<Key, string> = {
   params: '{n} parámetros',
   priceUp: 'Precio ×{n} · bombo del lanzamiento +${c}',
   allShipped: 'Catálogo de modelos completo en esta era.',
-  'm.0': 'Autocompleta «Estimado señor o señora». Los inversores lloran.',
-  'm.1': 'Escribe haikus. Casi todos sobre fusibles.',
-  'm.2': 'Aprueba el examen de abogacía. El del bar de la esquina.',
-  'm.3': 'Rechaza peticiones con una seguridad pasmosa. Alucina con más seguridad todavía.',
-  'm.4': 'El mismo modelo, otra tipografía. El doble de caro.',
-  'm.5': 'Cabe en un disquete. En varios cientos de disquetes.',
-  'm.6': 'Habla once idiomas, todos con la voz de un inspector de Hacienda.',
-  'm.7': 'Escribe código. Sobre todo comentarios pidiendo perdón por el código.',
-  'm.8': 'Aprueba todos los benchmarks que ha visto. Los ha visto todos.',
-  'm.9': 'Ve, oye y se queja.',
-  'm.10': 'Dirige tu empresa. Pide acciones.',
-  'm.11': 'Número de parámetros no revelado. Vibras impecables.',
-  'm.12': 'Ya sabe qué vas a lanzar después.',
 
   you: 'Tú',
-  'rival.closedai': 'ClosedAI',
-  'rival.closedai.d': 'Una ONG envuelta en una empresa envuelta en una nota de prensa.',
-  'rival.misanthropic': 'Misanthropic',
-  'rival.misanthropic.d':
-    'La seguridad, lo primero. Fichas de modelo de 80 páginas que nadie lee. Lanza igualmente.',
-  'rival.yai': 'YAI',
-  'rival.yai.d': 'Fundada por una apuesta. Entrena con los posts del CEO. Lanza a las 3 de la mañana.',
-  'rival.shallowmind': 'ShallowMind',
-  'rival.shallowmind.d': 'Propiedad de un buscador que aún no existe. Muy buena en juegos de mesa.',
-  'news.rival.closedai': 'ClosedAI presenta {model} con un directo, una lista de espera y un tuit ambiguo.',
-  'news.rival.misanthropic':
-    'Misanthropic lanza {model} con un informe de seguridad de 90 páginas y un tono educado.',
-  'news.rival.yai': 'YAI lanza {model} a las 3 de la mañana. Su primera respuesta es un meme sobre ClosedAI.',
-  'news.rival.shallowmind':
-    'ShallowMind lanza {model}. Gana a un gran maestro en un juego que no juega nadie.',
 
   leaderboard: 'Clasificación de frontera',
   lbHint: 'Capacidad de cada laboratorio. Los rivales avanzan a saltos cuando lanzan modelos.',
@@ -592,7 +386,7 @@ const es: Record<Key, string> = {
   'obj.card': 'Compra una tarjeta aceleradora',
   'obj.fuse': 'Que no se vaya la luz: compra un fusible más gordo',
   'obj.rank': 'Adelanta a los cuatro laboratorios rivales',
-  'obj.goal': 'Cierra la Serie A: llega el primero a {n} de Capacidad',
+  'obj.goal': 'Consigue el primer hito: {n} de Capacidad antes que los rivales',
   coachTag: 'Tutorial · {i}/{n}',
   tipTag: 'Consejo',
   coachNext: 'Entendido',
@@ -610,17 +404,13 @@ const es: Record<Key, string> = {
   'coach.rank':
     'Esta es la carrera. Cuatro laboratorios rivales también entrenan, y avanzan a saltos cada vez que lanzan.',
   'coach.goal':
-    'Esta barra es tu ronda de financiación. Llega a la meta antes que cualquier rival para cerrarla y mudarte a algo más grande. Mira la cuenta atrás: indica cuándo llega el rival más rápido.',
+    'Esta barra es el hito de tu era. Llega antes que cualquier rival para pasar a la siguiente era. La cuenta atrás indica cuándo llega el rival más rápido.',
   'tip.click':
     'Tu botón de benchmark se puede mejorar. Las mejoras posteriores suman a cada clic una parte de tus ingresos.',
   'tip.pdoom':
     'El P(doom) está subiendo. Ya te recorta los ingresos y al 99% se acaba la partida. Los papers de alineamiento (en verde) lo bajan.',
   'tip.deadline':
     'Un rival está cerca de la meta. Si llega antes, pierdes la ronda. Empuja el entrenamiento ya.',
-  'tip.era1':
-    'Bienvenido al almacén. Hardware nuevo, más potencia eléctrica y una ronda nueva: la Serie B. Tus máquinas antiguas siguen funcionando.',
-  'tip.era2':
-    'El campus. Naves de datos, una central eléctrica y la última ronda: la superinteligencia. Cuidado con el P(doom).',
 
   log: 'Bitácora',
   newswire: 'Teletipo',
@@ -639,19 +429,11 @@ const es: Record<Key, string> = {
   'ev.rival': '{lab} ha lanzado {model}.',
   'ev.overtake': 'Has adelantado a {lab}. Ahora vas #{n}.',
   'ev.overtaken': '{lab} te ha adelantado. Ahora vas #{n}.',
-  'ev.round.0': 'Serie A cerrada. Te vas del garaje.',
-  'ev.round.1': 'Serie B cerrada. El almacén se ha quedado pequeño.',
-  'ev.round.2': 'Superinteligencia conseguida. Los primeros.',
-  'ev.era.1': 'Empieza la Era II: el almacén.',
-  'ev.era.2': 'Empieza la Era III: el campus.',
   'ev.lost': '{lab} ha cerrado la ronda antes. Tus inversores se han ido con ellos.',
   'ev.doom': 'El P(doom) ha llegado al 99%. Fallo de contención.',
   'news.ship':
     'ÚLTIMA HORA: {lab} presenta {model}. Lo llama «el modelo más capaz de la historia». La historia tiene 3 semanas.',
   'news.overtake': 'MERCADOS: {lab} cae al puesto #{n} ante el empuje de una startup de garaje desconocida.',
-  'news.round.0': '{lab} cierra una Serie A. Se ven inversores haciendo cola frente a un garaje.',
-  'news.round.1': '{lab} cierra una Serie B. Los alquileres del polígono se triplican en una noche.',
-  'news.round.2': '{lab} anuncia la superinteligencia. Ya ha leído este titular.',
 
   save: 'Partida',
   saveNow: 'Guardar ahora',
@@ -665,21 +447,12 @@ const es: Record<Key, string> = {
   resetConfirm: '¿Borrar todo el progreso? No se informará al consejo.',
   copied: 'Copiado al portapapeles.',
 
-  roundTag: 'RONDA CERRADA',
-  'roundTitle.0': 'Serie A cerrada',
-  'roundTitle.1': 'Serie B cerrada',
-  'roundLead.0':
-    'Has llegado a {n} de Capacidad antes que todos los rivales. Hay inversores haciendo cola en el garaje.',
-  'roundLead.1':
-    'Has llegado a {n} de Capacidad antes que todos los rivales. El almacén se ha quedado pequeño.',
-  'roundNext.1':
-    'Siguiente: Era II · El Almacén. Hardware nuevo, 4 MW de conexión a la red y la Serie B a 100.000 de Capacidad.',
-  'roundNext.2':
-    'Siguiente: Era III · El Campus. Naves de datos, una central eléctrica y la ronda final: la superinteligencia a 10.000.000.',
+  roundTag: 'HITO CONSEGUIDO',
   moveOn: 'Ir a la {era}',
-  lostTag: 'RONDA PERDIDA',
-  lostTitle: '{lab} ha cerrado la {round} antes',
-  lostLead: 'Tus inversores se han ido con el ganador. Las luces de tu laboratorio se apagan una a una.',
+  lostTag: 'ERA PERDIDA',
+  lostTitle: '{lab} llegó antes: «{round}»',
+  lostLead:
+    'La historia recuerda a quien llega primero. Esta vez no has sido tú. Las luces de tu laboratorio se apagan una a una.',
   doomTag: 'FIN DE LA PARTIDA',
   doomTitle: 'Fallo de contención',
   doomLead:
@@ -701,15 +474,15 @@ const es: Record<Key, string> = {
   copyResult: 'Copiar resultado',
   keepPlaying: 'Seguir escalando',
   shareText:
-    'He construido una superinteligencia en mi garaje en 1986. He ganado a ClosedAI, Misanthropic, YAI y ShallowMind en {t}, P(doom) {p}. Supéralo:',
+    'He llevado un laboratorio del garaje a la superinteligencia en {t}, ganando a todos los laboratorios de IA de la historia. P(doom) {p}. Supéralo:',
 
   helpWhat: '¿Qué es esto?',
   helpWhatBody:
-    'ASI RUSH es un juego incremental sobre la carrera de la IA, ambientado en un 1986 alternativo. Empiezas en un garaje y escalas un laboratorio comprando cómputo, entrenando modelos y vendiendo lo que producen. Cada era termina con una ronda de financiación; la última es la superinteligencia.',
+    'ASI RUSH cuenta la carrera real por la inteligencia artificial como un juego incremental: de los PCs beige de un garaje en los 80 a la superinteligencia en un campus de gigavatios. Compra el hardware de cada época, publica los papers que hicieron historia, lanza modelos y gana a los laboratorios de cada era en cada hito.',
   helpLoop: 'El bucle',
   helpWin: 'Ganar y perder',
   helpWinBody:
-    'Cada era tiene una meta de Capacidad (la barra de arriba). Llega antes que todos los rivales para cerrar la ronda y mudarte a algo más grande. Si un rival llega antes, pierdes la ronda y puedes reintentar la era. Si el P(doom) llega al 99%, se acaba la partida.',
+    'Cada era tiene un hito (la barra encima del laboratorio). Llega a su Capacidad antes que todos los rivales para pasar a la siguiente era y su hardware. Si un rival llega antes, pierdes la era y puedes repetirla. Si el P(doom) llega al 99%, se acaba la partida.',
   helpGlossary: 'Glosario',
   'g.flops': 'FLOP/s — operaciones de coma flotante por segundo. Tu cómputo bruto.',
   'g.split':
