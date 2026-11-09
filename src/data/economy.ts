@@ -1,31 +1,49 @@
 // All economy constants. Logic in src/sim must read from here, never inline numbers.
 // Tuned with `npm run sim`; see docs/BALANCE.md for the results these values produce.
+//
+// The game retells the real AI race in five eras, from beige PCs to superintelligence. Each era is a site,
+// a span of years, a hardware generation and a historical milestone to reach before the rival labs of the time.
 
 export const TICK_HZ = 10;
 export const TICK_SECONDS = 1 / TICK_HZ;
 
-// --- eras: each one is a site and a funding round ------------------------
+// --- eras ----------------------------------------------------------------
+
+export type EraId = 'garage' | 'office' | 'loft' | 'datacenter' | 'frontier';
 
 export interface EraDef {
-  id: 'garage' | 'warehouse' | 'campus';
-  goal: number; // Capability that closes this era's round
+  id: EraId;
+  years: [from: number, to: number]; // shown on the in-game calendar as Capability grows
+  goal: number; // Capability that reaches this era's milestone
   baseCapMW: number; // site grid connection before power upgrades
   powerBaseCost: number;
   powerCostGrowth: number;
 }
 
 export const ERAS: EraDef[] = [
-  { id: 'garage', goal: 1_000, baseCapMW: 0.05, powerBaseCost: 100, powerCostGrowth: 3.5 },
-  { id: 'warehouse', goal: 100_000, baseCapMW: 4, powerBaseCost: 150_000, powerCostGrowth: 3.5 },
-  { id: 'campus', goal: 10_000_000, baseCapMW: 400, powerBaseCost: 4e9, powerCostGrowth: 3.5 },
+  { id: 'garage', years: [1986, 1995], goal: 1_000, baseCapMW: 0.05, powerBaseCost: 100, powerCostGrowth: 3.5 },
+  { id: 'office', years: [1995, 2006], goal: 30_000, baseCapMW: 1.5, powerBaseCost: 6e4, powerCostGrowth: 3.5 },
+  { id: 'loft', years: [2006, 2016], goal: 1e6, baseCapMW: 8, powerBaseCost: 2e7, powerCostGrowth: 3.5 },
+  { id: 'datacenter', years: [2016, 2022], goal: 3e7, baseCapMW: 150, powerBaseCost: 6e9, powerCostGrowth: 3.5 },
+  { id: 'frontier', years: [2022, 2030], goal: 1e9, baseCapMW: 6000, powerBaseCost: 2e12, powerCostGrowth: 3.5 },
 ];
 
 export const POWER_MULT = 2; // each power upgrade doubles the site's cap
 
-// --- hardware ------------------------------------------------------------
+// --- hardware: each era brings its own generation ------------------------
 
 export type BuildingId =
-  'homePc' | 'accelCard' | 'serverRack' | 'vectorCabinet' | 'hypercube' | 'waferEngine' | 'dataHall';
+  | 'homePc'
+  | 'accelCard'
+  | 'workstation'
+  | 'towerPc'
+  | 'rackServer'
+  | 'gamingRig'
+  | 'gpuServer'
+  | 'dgxPod'
+  | 'tensorPod'
+  | 'rubinRack'
+  | 'dataHall';
 
 export interface BuildingDef {
   id: BuildingId;
@@ -37,73 +55,24 @@ export interface BuildingDef {
   revealAt: number; // lifetime cash at which the item first shows up (within its era)
 }
 
+const b = (id: BuildingId, era: number, baseCost: number, flops: number, powerMW: number, revealAt = 0) =>
+  ({ id, era, baseCost, costGrowth: 1.12, flops, powerMW, revealAt }) satisfies BuildingDef;
+
 export const BUILDINGS: Record<BuildingId, BuildingDef> = {
-  homePc: { id: 'homePc', era: 0, baseCost: 10, costGrowth: 1.12, flops: 1, powerMW: 0.002, revealAt: 0 },
-  accelCard: {
-    id: 'accelCard',
-    era: 0,
-    baseCost: 150,
-    costGrowth: 1.12,
-    flops: 12,
-    powerMW: 0.015,
-    revealAt: 60,
-  },
-  serverRack: {
-    id: 'serverRack',
-    era: 0,
-    baseCost: 2_500,
-    costGrowth: 1.12,
-    flops: 150,
-    powerMW: 0.12,
-    revealAt: 1_000,
-  },
-  vectorCabinet: {
-    id: 'vectorCabinet',
-    era: 1,
-    baseCost: 60_000,
-    costGrowth: 1.12,
-    flops: 4_000,
-    powerMW: 0.6,
-    revealAt: 0,
-  },
-  hypercube: {
-    id: 'hypercube',
-    era: 1,
-    baseCost: 1.5e6,
-    costGrowth: 1.12,
-    flops: 80_000,
-    powerMW: 6,
-    revealAt: 0,
-  },
-  waferEngine: {
-    id: 'waferEngine',
-    era: 2,
-    baseCost: 1.5e9,
-    costGrowth: 1.12,
-    flops: 1e7,
-    powerMW: 40,
-    revealAt: 0,
-  },
-  dataHall: {
-    id: 'dataHall',
-    era: 2,
-    baseCost: 4e10,
-    costGrowth: 1.12,
-    flops: 1.5e8,
-    powerMW: 500,
-    revealAt: 0,
-  },
+  homePc: b('homePc', 0, 10, 1, 0.002),
+  accelCard: b('accelCard', 0, 150, 12, 0.015, 60),
+  workstation: b('workstation', 0, 2_500, 150, 0.12, 1_000),
+  towerPc: b('towerPc', 1, 5e4, 7.5e+03, 0.06),
+  rackServer: b('rackServer', 1, 1e6, 1.5e+05, 0.6),
+  gamingRig: b('gamingRig', 2, 2e7, 5e+05, 0.4),
+  gpuServer: b('gpuServer', 2, 4e8, 1e+07, 4),
+  dgxPod: b('dgxPod', 3, 8e9, 1.2e+07, 8),
+  tensorPod: b('tensorPod', 3, 1.6e11, 2.4e+08, 80),
+  rubinRack: b('rubinRack', 4, 3e12, 1.8e+09, 300),
+  dataHall: b('dataHall', 4, 6e13, 3.6e+10, 3000),
 };
 
-export const BUILDING_ORDER: BuildingId[] = [
-  'homePc',
-  'accelCard',
-  'serverRack',
-  'vectorCabinet',
-  'hypercube',
-  'waferEngine',
-  'dataHall',
-];
+export const BUILDING_ORDER: BuildingId[] = Object.keys(BUILDINGS) as BuildingId[];
 
 // --- core economy --------------------------------------------------------
 
@@ -111,17 +80,17 @@ export const ECONOMY = {
   startCash: 0,
   benchmarkCash: 2, // base cash per "Run Benchmark" click
   cashPerFlop: 0.1, // $ per FLOP of inference, before multipliers
-  capK: 0.015, // k in dCap/s = k * capMult * (trainFlops / flopRef)^capExponent
+  capK: 0.02, // k in dCap/s = k * capMult * (trainFlops / flopRef)^capExponent
   flopRef: 1,
   capExponent: 0.35,
   defaultTrainShare: 0.5,
 };
 
 // P(doom) = x^e / (1 + x^e), x = Capability / safeCap, safeCap = base * perAlignment^alignment.
-// It cuts revenue (public trust) and ends the game at doomLimit.
+// It cuts revenue (public trust) and ends the game at doomLimit. Two alignment papers per era keep pace.
 export const SAFETY = {
   baseSafeCap: 400,
-  perAlignment: 4,
+  perAlignment: 5,
   exponent: 1.5,
   revenuePenalty: 0.6, // revenue x (1 - penalty * P(doom))
   doomLimit: 0.99,
@@ -130,7 +99,13 @@ export const SAFETY = {
 // --- click upgrades ("Run benchmark" button) ----------------------------
 
 export type ClickUpgradeId =
-  'cherryPicked' | 'evalSuite' | 'overfit' | 'contamination' | 'vibes' | 'pressRelease' | 'saturation';
+  | 'cherryPicked'
+  | 'evalSuite'
+  | 'overfit'
+  | 'contamination'
+  | 'vibes'
+  | 'pressRelease'
+  | 'saturation';
 
 export interface ClickUpgradeDef {
   id: ClickUpgradeId;
@@ -143,37 +118,50 @@ export const CLICK_UPGRADES: ClickUpgradeDef[] = [
   { id: 'cherryPicked', cost: 40, mult: 3 },
   { id: 'evalSuite', cost: 400, revenuePct: 0.02 },
   { id: 'overfit', cost: 6_000, mult: 5 },
-  { id: 'contamination', cost: 90_000, revenuePct: 0.04 },
-  { id: 'vibes', cost: 3e6, mult: 10 },
-  { id: 'pressRelease', cost: 1e8, revenuePct: 0.06 },
-  { id: 'saturation', cost: 1e10, revenuePct: 0.1 },
+  { id: 'contamination', cost: 3e5, revenuePct: 0.04 },
+  { id: 'vibes', cost: 3e7, mult: 10 },
+  { id: 'pressRelease', cost: 1e10, revenuePct: 0.06 },
+  { id: 'saturation', cost: 1e13, revenuePct: 0.1 },
 ];
 
-// --- research: one-time papers, unlocked by Capability -------------------
+// --- research: the real papers and turns of the AI story ------------------
 
 export type ResearchId =
   | 'backprop'
-  | 'perTokenBilling'
-  | 'usenet'
-  | 'undervolting'
-  | 'redTeam'
-  | 'halfPrecision'
-  | 'scalingMemo'
-  | 'rlhf'
+  | 'expertSystems'
+  | 'threeLaws'
+  | 'lenet'
+  | 'powerMgmt'
+  | 'blas'
+  | 'killSwitchMemo'
+  | 'zipcodes'
+  | 'lstm'
+  | 'searchAds'
+  | 'friendlyAi'
+  | 'moore'
+  | 'svm'
+  | 'turingRules'
+  | 'deepBelief'
+  | 'cuda'
+  | 'imagenet'
+  | 'dropout'
+  | 'concreteProblems'
+  | 'cloudApi'
+  | 'partnership'
+  | 'resnet'
   | 'attention'
+  | 'mixedPrecision'
+  | 'scalingLaws'
+  | 'rlhf'
   | 'constitution'
-  | 'moe'
-  | 'synthData'
-  | 'interpretability'
-  | 'speculative'
-  | 'killSwitch'
   | 'chainOfThought'
+  | 'moe'
+  | 'interpretability'
   | 'testTime'
-  | 'superalignment'
   | 'agents'
-  | 'sandbox'
+  | 'superalignment'
   | 'selfImprove'
-  | 'safetyInstitute';
+  | 'safetyInstitutes';
 
 export interface ResearchDef {
   id: ResearchId;
@@ -190,29 +178,44 @@ export interface ResearchDef {
 // The first paper is almost free (to teach the idea); later ones cost more and multiply more.
 export const RESEARCH: ResearchDef[] = [
   { id: 'backprop', era: 0, cost: 15, unlockCap: 0.2, capMult: 1.5 },
-  { id: 'perTokenBilling', era: 0, cost: 150, unlockCap: 2, cashMult: 2 },
-  { id: 'usenet', era: 0, cost: 600, unlockCap: 8, capMult: 1.5 },
-  { id: 'undervolting', era: 0, cost: 1_500, unlockCap: 20, powerMult: 0.7 },
-  { id: 'redTeam', era: 0, cost: 2_500, unlockCap: 35, alignment: 1 },
-  { id: 'halfPrecision', era: 0, cost: 6_000, unlockCap: 60, flopsMult: 1.5 },
-  { id: 'scalingMemo', era: 0, cost: 15_000, unlockCap: 120, capMult: 1.6 },
-  { id: 'rlhf', era: 0, cost: 40_000, unlockCap: 250, cashMult: 1.5, alignment: 1 },
-  { id: 'attention', era: 0, cost: 90_000, unlockCap: 450, capMult: 1.6 },
+  { id: 'expertSystems', era: 0, cost: 150, unlockCap: 2, cashMult: 2 },
+  { id: 'threeLaws', era: 0, cost: 600, unlockCap: 10, alignment: 1 },
+  { id: 'lenet', era: 0, cost: 1_500, unlockCap: 20, capMult: 1.5 },
+  { id: 'powerMgmt', era: 0, cost: 3_000, unlockCap: 40, powerMult: 0.7 },
+  { id: 'blas', era: 0, cost: 7_000, unlockCap: 80, flopsMult: 1.5 },
+  { id: 'killSwitchMemo', era: 0, cost: 15_000, unlockCap: 150, alignment: 1 },
+  { id: 'zipcodes', era: 0, cost: 40_000, unlockCap: 300, capMult: 1.6 },
 
-  { id: 'constitution', era: 1, cost: 300_000, unlockCap: 1_500, alignment: 1 },
-  { id: 'moe', era: 1, cost: 1e6, unlockCap: 3_000, capMult: 2 },
-  { id: 'synthData', era: 1, cost: 4e6, unlockCap: 8_000, capMult: 2 },
-  { id: 'interpretability', era: 1, cost: 1e7, unlockCap: 15_000, alignment: 1 },
-  { id: 'speculative', era: 1, cost: 3e7, unlockCap: 25_000, cashMult: 2 },
-  { id: 'killSwitch', era: 1, cost: 6e7, unlockCap: 45_000, alignment: 1 },
-  { id: 'chainOfThought', era: 1, cost: 1.5e8, unlockCap: 70_000, capMult: 2 },
+  { id: 'lstm', era: 1, cost: 1e5, unlockCap: 1_500, capMult: 1.5 },
+  { id: 'searchAds', era: 1, cost: 3e5, unlockCap: 2_500, cashMult: 2 },
+  { id: 'friendlyAi', era: 1, cost: 6e5, unlockCap: 4_000, alignment: 1 },
+  { id: 'moore', era: 1, cost: 1.2e6, unlockCap: 6_000, flopsMult: 1.5 },
+  { id: 'svm', era: 1, cost: 2.5e6, unlockCap: 9_000, capMult: 1.5 },
+  { id: 'turingRules', era: 1, cost: 5e6, unlockCap: 13_000, alignment: 1 },
+  { id: 'deepBelief', era: 1, cost: 1e7, unlockCap: 18_000, capMult: 2 },
 
-  { id: 'testTime', era: 2, cost: 3e9, unlockCap: 150_000, capMult: 2 },
-  { id: 'superalignment', era: 2, cost: 8e9, unlockCap: 300_000, alignment: 1 },
-  { id: 'agents', era: 2, cost: 3e10, unlockCap: 800_000, cashMult: 2 },
-  { id: 'sandbox', era: 2, cost: 1e11, unlockCap: 1.5e6, alignment: 1 },
-  { id: 'selfImprove', era: 2, cost: 3e11, unlockCap: 3e6, capMult: 2 },
-  { id: 'safetyInstitute', era: 2, cost: 8e11, unlockCap: 5e6, alignment: 1 },
+  { id: 'cuda', era: 2, cost: 3e8, unlockCap: 4e4, flopsMult: 2 },
+  { id: 'imagenet', era: 2, cost: 8e8, unlockCap: 7e4, capMult: 1.5 },
+  { id: 'dropout', era: 2, cost: 2e9, unlockCap: 1.5e5, capMult: 1.5 },
+  { id: 'concreteProblems', era: 2, cost: 4e9, unlockCap: 2.5e5, alignment: 1 },
+  { id: 'cloudApi', era: 2, cost: 8e9, unlockCap: 3.5e5, cashMult: 2 },
+  { id: 'partnership', era: 2, cost: 1.5e10, unlockCap: 5e5, alignment: 1 },
+  { id: 'resnet', era: 2, cost: 3e10, unlockCap: 6.5e5, capMult: 2 },
+
+  { id: 'attention', era: 3, cost: 8e11, unlockCap: 1.2e6, capMult: 3 },
+  { id: 'mixedPrecision', era: 3, cost: 2e12, unlockCap: 2e6, flopsMult: 1.5 },
+  { id: 'scalingLaws', era: 3, cost: 5e12, unlockCap: 4e6, capMult: 2 },
+  { id: 'rlhf', era: 3, cost: 1.2e13, unlockCap: 8e6, cashMult: 1.5, alignment: 1 },
+  { id: 'constitution', era: 3, cost: 3e13, unlockCap: 1.4e7, alignment: 1 },
+  { id: 'chainOfThought', era: 3, cost: 6e13, unlockCap: 2e7, capMult: 1.5 },
+
+  { id: 'moe', era: 4, cost: 1.5e15, unlockCap: 4e7, capMult: 2 },
+  { id: 'interpretability', era: 4, cost: 4e15, unlockCap: 8e7, alignment: 1 },
+  { id: 'testTime', era: 4, cost: 1e16, unlockCap: 1.5e8, capMult: 2 },
+  { id: 'agents', era: 4, cost: 2.5e16, unlockCap: 2.5e8, cashMult: 2 },
+  { id: 'superalignment', era: 4, cost: 6e16, unlockCap: 4e8, alignment: 1 },
+  { id: 'selfImprove', era: 4, cost: 1.5e17, unlockCap: 6e8, capMult: 2 },
+  { id: 'safetyInstitutes', era: 4, cost: 3e17, unlockCap: 8e8, alignment: 1 },
 ];
 
 // --- model releases ------------------------------------------------------
@@ -225,81 +228,51 @@ export interface ModelDef {
   hypeCash: number;
 }
 
+const m = (era: number, cap: number, params: string, hypeCash: number): ModelDef => ({
+  era,
+  cap,
+  params,
+  priceMult: 1.25,
+  hypeCash,
+});
+
 export const MODELS: ModelDef[] = [
-  { era: 0, cap: 1, params: '120K', priceMult: 1.25, hypeCash: 25 },
-  { era: 0, cap: 12, params: '1.5M', priceMult: 1.25, hypeCash: 300 },
-  { era: 0, cap: 60, params: '20M', priceMult: 1.25, hypeCash: 2_500 },
-  { era: 0, cap: 200, params: '175M', priceMult: 1.25, hypeCash: 15_000 },
-  { era: 0, cap: 500, params: '175M', priceMult: 1.25, hypeCash: 60_000 },
-  { era: 1, cap: 2_000, params: '7B', priceMult: 1.3, hypeCash: 500_000 },
-  { era: 1, cap: 7_000, params: '13B', priceMult: 1.3, hypeCash: 2e6 },
-  { era: 1, cap: 20_000, params: '70B', priceMult: 1.3, hypeCash: 8e6 },
-  { era: 1, cap: 50_000, params: '175B', priceMult: 1.3, hypeCash: 3e7 },
-  { era: 2, cap: 200_000, params: '1T', priceMult: 1.3, hypeCash: 1e9 },
-  { era: 2, cap: 800_000, params: '1.8T', priceMult: 1.3, hypeCash: 5e9 },
-  { era: 2, cap: 3e6, params: '?', priceMult: 1.3, hypeCash: 2e10 },
-  { era: 2, cap: 7e6, params: 'Yes', priceMult: 1.3, hypeCash: 8e10 },
+  m(0, 1, '1K', 25),
+  m(0, 30, '10K', 800),
+  m(0, 300, '60K', 20_000),
+  m(1, 2_000, '1M', 2e5),
+  m(1, 8_000, '5M', 1e6),
+  m(1, 20_000, '20M', 4e6),
+  m(2, 6e4, '60M', 5e7),
+  m(2, 2e5, '100M', 2e8),
+  m(2, 6e5, '300M', 1e9),
+  m(3, 2e6, '1.5B', 5e9),
+  m(3, 8e6, '175B', 2e10),
+  m(3, 2e7, '540B', 1e11),
+  m(4, 6e7, '1.8T', 5e11),
+  m(4, 2e8, '?', 2e12),
+  m(4, 6e8, 'Yes', 1e13),
 ];
 
 // --- rival labs ----------------------------------------------------------
-// Rivals follow a reference trajectory (a typical player's log10 Capability by minute: the greedy
-// simulator at 3 clicks/s and 40% training) at their own speed. They improve in steps: each release jumps to where their curve will be
-// at the next release, then they coast. Different speeds and release cadences make them overtake each
-// other. cap(t) = head + 10^REF(speed * releaseTime(t)).
+// Four rival slots. Their names change with the era (see i18n `rival.<era>.<slot>`): symbolic-AI firms in
+// the 80s, search giants in the 2000s, deep-learning labs in the 2010s, frontier labs today.
+// Rivals follow a reference trajectory (a typical player's log10 Capability by minute, from the greedy
+// simulator at 3 clicks/s and 40% training) at their own speed, and improve in steps: each release jumps to
+// where their curve will be at the next release. cap(t) = head + 10^REF(speed * releaseTime(t)).
 
 export const RIVAL_REFERENCE: [minute: number, log10Cap: number][] = [
-  [0, 0],
-  [2, 0.71],
-  [4, 1.18],
-  [6, 1.56],
-  [8, 1.8],
-  [10, 2],
-  [12, 2.17],
-  [14, 2.37],
-  [16, 2.52],
-  [18, 2.63],
-  [20, 2.75],
-  [22, 2.87],
-  [24, 2.97],
-  [26, 3.07],
-  [28, 3.24],
-  [30, 3.46],
-  [32, 3.74],
-  [34, 3.96],
-  [36, 4.2],
-  [38, 4.35],
-  [40, 4.47],
-  [42, 4.56],
-  [44, 4.64],
-  [46, 4.71],
-  [48, 4.77],
-  [50, 4.83],
-  [52, 4.9],
-  [54, 4.98],
-  [56, 5.06],
-  [58, 5.19],
-  [60, 5.42],
-  [62, 5.68],
-  [64, 5.89],
-  [66, 6.04],
-  [68, 6.16],
-  [70, 6.26],
-  [72, 6.35],
-  [74, 6.42],
-  [76, 6.48],
-  [78, 6.59],
-  [80, 6.67],
-  [82, 6.74],
-  [84, 6.81],
-  [86, 6.86],
-  [88, 6.91],
-  [90, 6.95],
-  [92, 6.99],
+  [0, 0], [2, 0.83], [4, 1.22], [6, 1.62], [8, 1.89], [10, 2.08], [12, 2.25], [14, 2.39], [16, 2.51],
+  [18, 2.65], [20, 2.76], [22, 2.86], [24, 2.93], [26, 3], [28, 3.07], [30, 3.13], [32, 3.26], [34, 3.56],
+  [36, 3.79], [38, 3.97], [40, 4.15], [42, 4.31], [44, 4.48], [46, 4.72], [48, 5.05], [50, 5.31], [52, 5.51],
+  [54, 5.65], [56, 5.76], [58, 5.88], [60, 6.01], [62, 6.21], [64, 6.53], [66, 6.77], [68, 7.02], [70, 7.18],
+  [72, 7.3], [74, 7.4], [76, 7.48], [78, 7.6], [80, 7.84], [82, 8.11], [84, 8.32], [86, 8.46], [88, 8.57],
+  [90, 8.72], [92, 8.85], [94, 8.94],
 ];
 export const RIVAL_REFERENCE_SLOPE = 0.025; // log10 per minute beyond the last point
 
 export interface RivalDef {
-  id: 'closedai' | 'misanthropic' | 'yai' | 'shallowmind';
+  id: 'r0' | 'r1' | 'r2' | 'r3';
   head: number; // head start, matters only in the first minutes
   speed: number; // fraction of the reference pace
   every: number; // seconds between releases
@@ -307,10 +280,10 @@ export interface RivalDef {
 }
 
 export const RIVALS: RivalDef[] = [
-  { id: 'closedai', head: 30, speed: 0.84, every: 177, offset: 113 },
-  { id: 'misanthropic', head: 20, speed: 0.83, every: 229, offset: 70 },
-  { id: 'yai', head: 8, speed: 0.819, every: 446, offset: 427 },
-  { id: 'shallowmind', head: 25, speed: 0.866, every: 361, offset: 162 },
+  { id: 'r0', head: 30, speed: 0.867, every: 195, offset: 114 },
+  { id: 'r1', head: 20, speed: 0.883, every: 220, offset: 84 },
+  { id: 'r2', head: 8, speed: 0.860, every: 423, offset: 386 },
+  { id: 'r3', head: 25, speed: 0.874, every: 361, offset: 165 },
 ];
 
 export const MILESTONES = {
@@ -318,7 +291,7 @@ export const MILESTONES = {
 };
 
 export const SAVE = {
-  version: 3,
+  version: 4,
   autosaveSeconds: 30,
   storageKey: 'asi-rush-save',
 };

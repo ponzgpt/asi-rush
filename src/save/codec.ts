@@ -25,7 +25,8 @@ export function decode(text: string): { state: State; savedAt: number } | null {
     const json = LZString.decompressFromBase64(text.trim());
     if (!json) return null;
     const file = JSON.parse(json) as SaveFile;
-    if (typeof file.v !== 'number' || file.v > SAVE.version || !file.state) return null;
+    // saves from before the five-era timeline (v < 4) don't map onto it: start fresh
+    if (typeof file.v !== 'number' || file.v !== SAVE.version || !file.state) return null;
     const base = newGame();
     const raw = file.state;
     const state: State = { ...base, ...(raw as Partial<State>), owned: { ...base.owned } };

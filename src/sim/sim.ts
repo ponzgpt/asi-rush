@@ -65,15 +65,7 @@ export function newGame(): State {
     capability: new Decimal(0),
     flopsSpentTraining: new Decimal(0),
     cashEarned: new Decimal(0),
-    owned: {
-      homePc: 0,
-      accelCard: 0,
-      serverRack: 0,
-      vectorCabinet: 0,
-      hypercube: 0,
-      waferEngine: 0,
-      dataHall: 0,
-    },
+    owned: Object.fromEntries(BUILDING_ORDER.map((id) => [id, 0])) as Record<BuildingId, number>,
     era: 0,
     fuseLevel: 0,
     research: [],
@@ -92,6 +84,15 @@ export function newGame(): State {
 
 export function eraOf(s: State): EraDef {
   return ERAS[s.era] ?? (ERAS[0] as EraDef);
+}
+
+/** Calendar year shown in the lab: moves through the era's span as Capability climbs toward its goal. */
+export function yearOf(s: State): number {
+  const e = eraOf(s);
+  const from = s.era > 0 ? (ERAS[s.era - 1]?.goal ?? 1) : 1;
+  const k = Math.log(Math.max(1, s.capability.toNumber()) / from) / Math.log(e.goal / from);
+  const span = e.years[1] - e.years[0];
+  return e.years[0] + Math.floor(span * Math.min(1, Math.max(0, k)));
 }
 
 export function isFinalEra(s: State): boolean {
@@ -287,10 +288,10 @@ export function referenceLog10(minute: number): number {
   return last[1];
 }
 
-/** Time on the reference curve a rival has reached: continuous before its first release, then stepped. */
+/** Time on the reference curve a rival has reached: continuous before its first release, then it holds the level of its latest release. */
 function rivalClock(r: RivalDef, time: number): number {
   const n = rivalReleases(r, time);
-  return n === 0 ? time : r.offset + n * r.every;
+  return n === 0 ? time : r.offset + (n - 1) * r.every;
 }
 
 export function rivalCap(r: RivalDef, time: number): number {

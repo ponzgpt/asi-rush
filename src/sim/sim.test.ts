@@ -28,6 +28,7 @@ import {
   rates,
   rivalCap,
   rivalEta,
+  yearOf,
   throttle,
   tick,
   type State,
@@ -53,9 +54,9 @@ describe('costs', () => {
   });
 
   it('later-era hardware is locked until that era', () => {
-    expect(apply(withCash(1e9), { type: 'buy', building: 'vectorCabinet' }).owned.vectorCabinet).toBe(0);
+    expect(apply(withCash(1e9), { type: 'buy', building: 'towerPc' }).owned.towerPc).toBe(0);
     const era2 = { ...withCash(1e9), era: 1 };
-    expect(apply(era2, { type: 'buy', building: 'vectorCabinet' }).owned.vectorCabinet).toBe(1);
+    expect(apply(era2, { type: 'buy', building: 'towerPc' }).owned.towerPc).toBe(1);
   });
 });
 
@@ -173,7 +174,7 @@ describe('research and models', () => {
 describe('P(doom)', () => {
   it('rises with capability, falls with alignment, and cuts revenue', () => {
     const base = { ...withCap(withCash(1e9), 1000), owned: pcs(20), trainShare: 0 };
-    const aligned = apply(base, { type: 'research', id: 'redTeam' });
+    const aligned = apply(base, { type: 'research', id: 'threeLaws' });
     expect(pDoom(aligned)).toBeLessThan(pDoom(base));
     expect(rates(aligned).cashPerSec.gt(rates(base).cashPerSec)).toBe(true);
     expect(rates(base).cashPerSec.toNumber()).toBeCloseTo(
@@ -186,9 +187,22 @@ describe('P(doom)', () => {
   });
 });
 
+describe('calendar', () => {
+  it('walks each era from its first to its last year as Capability nears the goal', () => {
+    expect(yearOf(newGame())).toBe(ERAS[0]?.years[0]);
+    expect(yearOf(withCap(newGame(), garage.goal))).toBe(garage.years[1]);
+    const last = ERAS[ERAS.length - 1] as (typeof ERAS)[number];
+    expect(yearOf(withCap({ ...newGame(), era: ERAS.length - 1 }, last.goal))).toBe(last.years[1]);
+  });
+
+  it('eras cover one continuous timeline', () => {
+    for (let i = 1; i < ERAS.length; i++) expect(ERAS[i]?.years[0]).toBe(ERAS[i - 1]?.years[1]);
+  });
+});
+
 describe('eras and the race', () => {
   it('reaching the goal closes the round; advancing moves to the next site', () => {
-    const s = tick(withCap({ ...newGame(), research: ['redTeam', 'rlhf'] }, garage.goal));
+    const s = tick(withCap({ ...newGame(), research: ['threeLaws', 'killSwitchMemo'] }, garage.goal));
     expect(s.roundClosed).toBe(true);
     expect(s.outcome).toBeNull();
     const next = apply(s, { type: 'advanceEra' });

@@ -10,9 +10,9 @@ describe('pacing', () => {
     expect(expert.milestones.firstTraining).toBeLessThan(180);
   });
 
-  it('Series A in 20-40 min', () => {
-    expect(expert.milestones.seriesA).toBeGreaterThan(20 * 60);
-    expect(expert.milestones.seriesA).toBeLessThan(40 * 60);
+  it('the first milestone (garage era) in 20-40 min', () => {
+    expect(expert.milestones.garage).toBeGreaterThan(20 * 60);
+    expect(expert.milestones.garage).toBeLessThan(40 * 60);
   });
 
   it('an expert reaches ASI first, in under two hours', () => {
