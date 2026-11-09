@@ -4,7 +4,7 @@ import '@fontsource/ibm-plex-mono/400.css';
 import '@fontsource/ibm-plex-mono/600.css';
 import { effect } from '@preact/signals';
 import { render } from 'preact';
-import { musicEra, musicIntensity, playSfx, setHum, titleMusic } from './audio/audio.ts';
+import { musicEra, musicIntensity, playSfx, primeAudio, setHum, titleMusic } from './audio/audio.ts';
 import { effectiveFlops } from './sim/sim.ts';
 import { on } from './state/events.ts';
 import { game, load } from './state/store.ts';
@@ -16,6 +16,8 @@ const root = document.getElementById('app');
 if (!root) throw new Error('#app missing from index.html');
 
 load();
+titleMusic.value = true; // the title screen is up until the player starts
+primeAudio();
 on(playSfx);
 effect(() => {
   const s = game.value;

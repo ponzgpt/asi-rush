@@ -42,12 +42,28 @@ export function setAudioPrefs(p: Partial<Prefs>) {
   musicBus.gain.setTargetAtTime(audioPrefs.value.music ? 0.32 : 0, now, 0.3);
 }
 
-/** Browsers only allow audio after a user gesture: call from the first click/keypress. */
+/**
+ * Start the audio engine as early as possible (the title screen). Browsers keep it suspended until the first
+ * user gesture unless autoplay is allowed for the site, so we also resume on the first click, tap or key.
+ */
+export function primeAudio() {
+  initContext();
+  const resume = () => unlockAudio();
+  for (const ev of ['pointerdown', 'touchend', 'keydown'] as const)
+    window.addEventListener(ev, resume, { once: true, capture: true });
+}
+
+/** Resume audio from inside a user gesture. Also routes iOS audio past the silent switch. */
 export function unlockAudio() {
-  if (ctx) {
-    void ctx.resume();
-    return;
-  }
+  initContext();
+  if (!ctx) return;
+  void ctx.resume();
+  const nav = navigator as Navigator & { audioSession?: { type: string } };
+  if (nav.audioSession) nav.audioSession.type = 'playback';
+}
+
+function initContext() {
+  if (ctx) return;
   ctx = new AudioContext();
   const master = ctx.createDynamicsCompressor();
   master.threshold.value = -14;

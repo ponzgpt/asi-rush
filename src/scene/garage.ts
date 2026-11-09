@@ -5,7 +5,7 @@ import type { SceneModule } from './types.ts';
 import { on } from '../state/events.ts';
 import { pDoom, powerCapMW, powerDemandMW, rates, throttle, type State } from '../sim/sim.ts';
 import { C, hex } from './palette.ts';
-import { drawText, makeCanvas, makeTexture, pixelSafe, textWidth, type Painter } from './pixel.ts';
+import { drawText, makeTexture, pixelSafe, textWidth, type Painter } from './pixel.ts';
 import {
   AC,
   CARD,
@@ -295,36 +295,6 @@ interface Spawn {
 }
 
 /** The Era I garage: returns its layer and a per-frame update. */
-/** A still of the garage mid-game, for the title screen: backdrop plus a lab's worth of hardware. */
-export function garageStill(): string {
-  return makeCanvas(W, H, (p) => {
-    paintBackdrop(p);
-    const at = (x: number, y: number, paint: (q: Painter) => void) => {
-      p.ctx.save();
-      p.ctx.translate(x, y);
-      paint(p);
-      p.ctx.restore();
-    };
-    PC_SLOTS.slice(0, 20).forEach((slot, i) => {
-      at(slot.x, slot.y, paintPc);
-      for (let l = 0; l < PC.screen.h; l++)
-        p.rect(
-          slot.x + PC.screen.x,
-          slot.y + PC.screen.y + l,
-          2 + ((i * 3 + l * 5) % 6),
-          1,
-          l === 3 ? C.screen : C.screenMid,
-        );
-    });
-    at(RIG_X, RIG_Y, paintRig);
-    CARD_SLOTS.slice(0, 12).forEach((slot) => at(slot.x, slot.y, paintCard));
-    RACK_IN.forEach((x) => at(x, FLOOR - RACK.h, paintRack));
-    at(BENCH_X - 14, FLOOR + 4 - FOUNDER.h, paintFounder(0));
-    at(340, 122, paintAc);
-    at(296, 128, paintFuseBox);
-  }).toDataURL();
-}
-
 export function createGarage(root: Container, getLab: () => string): SceneModule {
   const world = new Container();
   root.addChild(world);

@@ -275,28 +275,32 @@ export function BenchmarkButton() {
 export function ClickUpgrade() {
   const s = game.value;
   const u = nextClickUpgrade(s);
-  if (!u) return <div class="clickup done dim small">{t('clickDone')}</div>;
-  const ok = s.cash.gte(u.cost);
+  if (!u) return <div class="clickup-done dim small">{t('clickDone')}</div>;
   return (
-    <button
-      class="clickup"
-      data-coach="clickup"
-      disabled={!ok}
-      onClick={() => dispatch({ type: 'clickUpgrade' })}
-    >
-      <span class="clickup-name">
-        {t('clickUpgrade')}: <b>{tk(`c.${u.id}`)}</b>
-      </span>
-      <span class="clickup-eff">
-        {u.mult ? t('clickMult', { n: u.mult }) : t('clickPct', { n: Math.round((u.revenuePct ?? 0) * 100) })}
-      </span>
-      <span class="clickup-cost">{ok ? `$${fmt(u.cost)}` : (eta(new Decimal(u.cost), s) ?? '')}</span>
-      <span class="clickup-pips">
-        {CLICK_UPGRADES.map((c, i) => (
-          <i key={c.id} class={i < s.clickUpgrades ? 'on' : ''} />
-        ))}
-      </span>
-    </button>
+    <div class="clickup">
+      <Item
+        coach="clickup"
+        icon={icons().bench}
+        title={tk(`c.${u.id}`)}
+        desc={t('clickUpgrade')}
+        chips={[
+          <Chip tone="cash">
+            {u.mult
+              ? t('clickMult', { n: u.mult })
+              : t('clickPct', { n: Math.round((u.revenuePct ?? 0) * 100) })}
+          </Chip>,
+          <span class="clickup-pips" title={`${s.clickUpgrades}/${CLICK_UPGRADES.length}`}>
+            {CLICK_UPGRADES.map((c, i) => (
+              <i key={c.id} class={i < s.clickUpgrades ? 'on' : ''} />
+            ))}
+          </span>,
+        ]}
+        price={`$${fmt(u.cost)}`}
+        ok={s.cash.gte(u.cost)}
+        eta={eta(new Decimal(u.cost), s)}
+        onBuy={() => dispatch({ type: 'clickUpgrade' })}
+      />
+    </div>
   );
 }
 

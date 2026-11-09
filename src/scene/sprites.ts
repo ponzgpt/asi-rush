@@ -165,6 +165,19 @@ export function icons(): Record<string, string> {
       14,
       18,
     ),
+    bench: icon(
+      (p) => {
+        p.rect(0, 0, 16, 16, C.ink);
+        p.rect(1, 1, 14, 14, C.screenBg);
+        [3, 5, 8, 12].forEach((h, i) => {
+          p.rect(2 + i * 3, 14 - h, 2, h, i === 3 ? C.ledAmber : C.screenMid);
+          p.rect(2 + i * 3, 14 - h, 2, 1, i === 3 ? C.beigeLight : C.screen);
+        });
+        p.rect(12, 1, 2, 1, C.ledAmber);
+      },
+      16,
+      16,
+    ),
     paper: icon(
       (p) => {
         p.rect(2, 0, 12, 16, C.board);

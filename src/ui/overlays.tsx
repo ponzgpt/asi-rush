@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import { ERAS, MODELS, RIVALS } from '../data/economy.ts';
 import { audioPrefs, setAudioPrefs, titleMusic, unlockAudio } from '../audio/audio.ts';
-import { garageStill } from '../scene/garage.ts';
+import { titleArt } from '../scene/title.ts';
 import { pDoom, playerRank } from '../sim/sim.ts';
 import { dispatch, displayLab, retryEra, saveEraStartNow } from '../state/store.ts';
 import {
@@ -61,7 +61,7 @@ export function Boot(p: { onDone: () => void }) {
   const [lines, setLines] = useState(0);
   const [name, setName] = useState(labName.value);
   const returning = hasStarted();
-  const art = useMemo(() => garageStill(), []);
+  const art = useMemo(() => titleArt(), []);
 
   // title -> (first key or click) -> BIOS lines -> briefing or "back to the lab"
   const press = () => {
@@ -109,15 +109,24 @@ export function Boot(p: { onDone: () => void }) {
   });
 
   return (
-    <div class={`splash phase-${phase}`} onClick={press} style={{ '--art': `url(${art})` }}>
+    <div
+      class={`splash phase-${phase}`}
+      onClick={press}
+      style={{ '--art': `url(${art.base})`, '--bolt': `url(${art.bolt})` }}
+    >
       <div class="splash-art" aria-hidden="true" />
+      <div class="splash-art splash-bolt" aria-hidden="true" />
+      <div class="splash-glow" aria-hidden="true" />
+      <div class="splash-flash" aria-hidden="true" />
       <div class="splash-shade" aria-hidden="true" />
       {phase === 'title' && (
         <div class="splash-title">
-          <h1 class="logo">
-            ASI<span>RUSH</span>
-          </h1>
-          <p class="splash-tagline">{t('heroTagline')}</p>
+          <div class="splash-head">
+            <h1 class="logo">
+              ASI<span>RUSH</span>
+            </h1>
+            <p class="splash-tagline">{t('heroTagline')}</p>
+          </div>
           <p class="splash-press">{t('pressStart')}</p>
           <p class="splash-credit">{t('titleCredit')}</p>
           <div class="splash-lang" onClick={(e) => e.stopPropagation()}>

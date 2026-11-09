@@ -1360,60 +1360,26 @@ textarea {
   animation: blink 1s steps(2) infinite;
 }
 
-.clickup {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 2px 10px;
-  align-items: center;
-  width: 100%;
-  padding: 7px 10px;
-  border: 1px dashed var(--line-2);
-  border-radius: var(--radius);
-  background: var(--bg-2);
-  text-align: left;
-  cursor: pointer;
-  font-size: 12px;
-}
-.clickup:hover:not(:disabled) {
-  border-color: var(--cash);
-}
-.clickup:disabled {
-  cursor: not-allowed;
-  opacity: 0.75;
-}
-.clickup-name b {
-  color: var(--cash);
-  font-weight: 600;
-}
-.clickup-eff {
-  grid-column: 1;
-  color: var(--ink-3);
-}
-.clickup-cost {
-  grid-row: 1 / span 2;
-  grid-column: 2;
-  font-family: var(--font-crt);
-  font-size: 20px;
-  color: var(--cash);
+.clickup .item {
+  border-color: #ffbf4a44;
 }
 .clickup-pips {
-  grid-column: 1 / -1;
-  display: flex;
-  gap: 3px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 2px;
 }
 .clickup-pips i {
-  flex: 1;
-  height: 3px;
-  background: var(--line);
+  width: 8px;
+  height: 4px;
+  background: var(--line-2);
 }
 .clickup-pips i.on {
   background: var(--cash);
+  box-shadow: 0 0 4px var(--cash);
 }
-.clickup.done {
-  border: 0;
-  background: none;
+.clickup-done {
   text-align: center;
-  cursor: default;
 }
 
 .item.safety {
@@ -1658,8 +1624,8 @@ li.down .board-move {
   .deck .bench .key-title {
     font-size: 14px;
   }
-  .clickup {
-    padding: 5px 9px;
+  .clickup .item {
+    padding: 6px 8px;
   }
   .alloc {
     padding: 8px 10px;
@@ -1772,10 +1738,53 @@ li.down .board-move {
 .splash-art {
   position: absolute;
   inset: -4%;
-  background: var(--art) center 60% / cover no-repeat;
+  background: var(--art) center 70% / cover no-repeat;
   image-rendering: pixelated;
   animation: splash-drift 48s ease-in-out infinite alternate;
   filter: saturate(1.1);
+}
+.splash-bolt {
+  background-image: var(--bolt);
+  opacity: 0;
+  animation:
+    splash-drift 48s ease-in-out infinite alternate,
+    strike 7s linear infinite;
+  filter: drop-shadow(0 0 6px #9fd0ff);
+}
+.splash-flash {
+  position: absolute;
+  inset: 0;
+  background: #cfe6ff;
+  opacity: 0;
+  pointer-events: none;
+  animation: strike-flash 7s linear infinite;
+}
+@keyframes strike {
+  0%,
+  58%,
+  61%,
+  63%,
+  100% {
+    opacity: 0;
+  }
+  59%,
+  60.5%,
+  62% {
+    opacity: 1;
+  }
+}
+@keyframes strike-flash {
+  0%,
+  58%,
+  60%,
+  62%,
+  100% {
+    opacity: 0;
+  }
+  59%,
+  61% {
+    opacity: 0.18;
+  }
 }
 @keyframes splash-drift {
   from {
@@ -1790,8 +1799,7 @@ li.down .board-move {
   inset: 0;
   background:
     repeating-linear-gradient(to bottom, #0000 0 2px, #00000059 2px 3px),
-    radial-gradient(ellipse 55% 38% at 50% 50%, #07060cd9 0%, #07060c8c 55%, #0000 100%),
-    radial-gradient(ellipse at 50% 40%, #0000 30%, #07060ccc 85%),
+    radial-gradient(ellipse at 50% 45%, #0000 40%, #07060cb3 90%),
     linear-gradient(#07060c99, #0000 35%, #0000 65%, #07060cee);
   transition: background-color 0.6s;
 }
@@ -1799,14 +1807,32 @@ li.down .board-move {
 .phase-brief .splash-shade {
   background-color: #07060cb3;
 }
+.splash-glow {
+  position: absolute;
+  left: 50%;
+  top: 47%;
+  width: 40vmin;
+  height: 40vmin;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, #7dffb040 0%, #7dffb014 40%, #0000 70%);
+  animation: glow-pulse 3.2s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes glow-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
 .splash-title {
   position: relative;
   min-height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   gap: 14px;
+  padding-top: 7vh !important;
+  padding-bottom: 9vh !important;
   padding: 24px;
   text-align: center;
   animation: slide-in 1s ease-out;
@@ -1822,7 +1848,7 @@ li.down .board-move {
   text-shadow: 0 2px 8px #000;
 }
 .splash-press {
-  margin: 28px 0 0;
+  margin: 0;
   font-family: var(--font-pixel);
   font-size: clamp(12px, 1.2vw, 16px);
   letter-spacing: 0.14em;
