@@ -2,7 +2,8 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_GREEDY, runGreedy } from './greedy.ts';
 
-describe('pacing', () => {
+// each case replays a full 90-120 min game headless; CI runners need more than the 5 s default
+describe('pacing', { timeout: 60_000 }, () => {
   const expert = runGreedy(DEFAULT_GREEDY);
 
   it('first purchase under 10 s and first training under 3 min', () => {
