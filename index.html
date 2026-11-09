@@ -16,9 +16,23 @@
       property="og:description"
       content="Five eras of the AI race, from backprop to superintelligence. You start with a garage, a beige PC and no adult supervision."
     />
-    <meta property="og:url" content="https://ponzgpt.github.io/asi-rush/" />
-    <meta property="og:image" content="https://ponzgpt.github.io/asi-rush/og.png" />
+    <meta property="og:url" content="https://asi-rush.technoir.cloud/" />
+    <meta property="og:image" content="https://asi-rush.technoir.cloud/og.png" />
     <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      // Players arriving from the old GitHub Pages address bring their save in the fragment (see pages/index.html).
+      // Import it once, only if this domain has no save yet, then drop it from the address bar.
+      (function () {
+        var h = location.hash;
+        if (h.indexOf('#migrate=') !== 0) return;
+        try {
+          var data = JSON.parse(decodeURIComponent(h.slice(9)));
+          if (!localStorage.getItem('asi-rush-save'))
+            for (var k in data) if (k.indexOf('asi-rush') === 0) localStorage.setItem(k, String(data[k]));
+        } catch (e) {}
+        history.replaceState(null, '', location.pathname);
+      })();
+    </script>
   </head>
   <body>
     <div id="app"></div>

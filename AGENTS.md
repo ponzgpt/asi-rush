@@ -1,13 +1,13 @@
 # asi-rush
 
-Incremental/idle web game: the real AI race, five eras from a garage to superintelligence. Live: https://ponzgpt.github.io/asi-rush/
+Incremental/idle web game: the real AI race, five eras from a garage to superintelligence. Live: https://asi-rush.technoir.cloud
 
 ## Commands
 
 - Check (before every commit and deploy): `npm run check` (ESLint + Prettier, Vitest, tsc + vite build)
-- Dev: `npm run dev` → http://localhost:5173/asi-rush/
+- Dev: `npm run dev` → http://localhost:5173/
 - Balance sim: `npm run sim -- [hours] [trainShare] [clicksPerSec] [--timeline]`
-- Deploy: push to `main` (GitHub Actions → GitHub Pages)
+- Deploy: `./scripts/deploy.sh` (VPS `hoid`; GitHub Pages only redirects old links, carrying saves: `pages/`)
 
 ## Layout
 

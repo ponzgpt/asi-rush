@@ -11,7 +11,7 @@ hardware looks like the period, with a relic of the previous era kept on a shelf
 ## Stack
 
 Vite + TypeScript (strict) · PixiJS v8 (scene) · Preact + @preact/signals (DOM UI) · break_eternity.js (numbers)
-· lz-string (saves) · Vitest · ESLint + Prettier · GitHub Pages via Actions.
+· lz-string (saves) · Vitest · ESLint + Prettier · nginx container on the VPS (`scripts/deploy.sh`).
 
 ## Architecture
 

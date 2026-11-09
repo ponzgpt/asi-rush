@@ -4,7 +4,7 @@ An incremental game about the real race to AI, told as a clicker: from beige PCs
 winters, the dot-com boom, GPUs and transformers, to superintelligence. Four rival labs (parodies of the ones
 that actually ran the race in each era) want to get there first.
 
-**Play:** https://ponzgpt.github.io/asi-rush/ (about 90 minutes for five eras; English and Spanish)
+**Play:** https://asi-rush.technoir.cloud (about 90 minutes for five eras; English and Spanish)
 
 ![ASI RUSH](public/og.png)
 
@@ -27,7 +27,7 @@ Original pixel art and synthesized audio — no asset files. Space runs a benchm
 
 ```bash
 npm install
-npm run dev        # http://localhost:5173/asi-rush/
+npm run dev        # http://localhost:5173/
 ```
 
 ## Test
@@ -47,7 +47,10 @@ Results and tuning notes: [docs/BALANCE.md](docs/BALANCE.md).
 
 ## Deploy
 
-Every push to `main` runs `.github/workflows/deploy.yml`: install → check → build → GitHub Pages.
+`./scripts/deploy.sh` refuses a dirty tree, runs the check, builds an nginx image tagged with the commit on the VPS
+and rolls it out as a Docker Swarm service behind Traefik at https://asi-rush.technoir.cloud. CI
+(`.github/workflows/ci.yml`) runs the same check on every push. The old GitHub Pages address now serves only
+`pages/index.html`, which forwards players to the new domain with their local save.
 
 ## How this was made
 

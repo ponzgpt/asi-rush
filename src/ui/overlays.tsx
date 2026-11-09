@@ -19,7 +19,7 @@ import {
 import { fmt, fmtClock, fmtInt, fmtPct } from './format.ts';
 import { lang, setLang, t, tk, type Key } from './i18n.ts';
 
-const GAME_URL = 'https://ponzgpt.github.io/asi-rush/';
+const GAME_URL = 'https://asi-rush.technoir.cloud/';
 
 export function Modal(p: {
   onClose: () => void;

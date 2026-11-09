@@ -1,6 +1,6 @@
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
-  base: '/asi-rush/',
+  base: '/',
   test: { environment: 'node' },
 });
