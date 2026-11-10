@@ -11,8 +11,8 @@ that actually ran the race in each era) want to get there first.
 ## What you do
 
 1. **Run benchmarks** for your first dollars.
-2. **Buy hardware** that follows history — beige PCs and workstations, black towers and 1U servers, RGB gaming
-   rigs and GPU boxes, gold AI pods, rack-scale superchips — and a bigger power hookup when the lights dim.
+2. **Buy hardware** that follows history: beige PCs and workstations, black towers and 1U servers, RGB gaming
+   rigs and GPU boxes, gold AI pods, rack-scale superchips. Plus a bigger power hookup when the lights dim.
 3. **Split compute** between serving (cash) and training (Capability, with diminishing returns).
 4. **Publish research** (backprop, RLHF, a leaked fax about attention) and **ship models** that charge more per token.
 5. **Race the labs of each era** to five milestones: read handwritten digits (garage), beat the chess champion
@@ -21,7 +21,7 @@ that actually ran the race in each era) want to get there first.
 
 Runs entirely in your browser: each visitor plays their own game, saved locally every 30 s. The game pauses
 while the tab is closed or hidden, rivals included. Export/import from Settings.
-Original pixel art and synthesized audio — no asset files. Space runs a benchmark. Spec: [docs/SPEC.md](docs/SPEC.md).
+Original pixel art and synthesized audio, no asset files. Space runs a benchmark. Spec: [docs/SPEC.md](docs/SPEC.md).
 
 ## Run
 
